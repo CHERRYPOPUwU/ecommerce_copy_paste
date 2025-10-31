@@ -42,10 +42,10 @@ def home():
 def login():
     if request.method == 'POST':
         correo = request.form['correo']
-        contraseña = request.form['contraseña']
+        contrasena = request.form['contraseña']
 
         usuario = Usuario.query.filter_by(correo=correo).first()
-        if usuario and check_password_hash(usuario.contraseña, contraseña):
+        if usuario and check_password_hash(usuario.contrasena, contrasena):
             login_user(usuario)
             flash('Has iniciado sesión correctamente.', 'success')
 
@@ -66,14 +66,14 @@ def register():
     if request.method == 'POST':
         nombre = request.form['nombre']
         correo = request.form['correo']
-        contraseña = request.form['contraseña']
+        contrasena = request.form['contraseña']
 
         existente = Usuario.query.filter_by(correo=correo).first()
         if existente:
             flash('Este correo ya está registrado.', 'warning')
         else:
             nuevo = Usuario(nombre=nombre, correo=correo, rol='cliente')
-            nuevo.set_password(contraseña)
+            nuevo.set_password(contrasena)
             db.session.add(nuevo)
             db.session.commit()
             flash('Registro exitoso. Ahora puedes iniciar sesión.', 'success')

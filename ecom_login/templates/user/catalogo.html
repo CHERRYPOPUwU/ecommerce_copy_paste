@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Catálogo{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Catálogo de Productos</h2>
+    <hr>
+
+    {% if productos %}
+    <div class="row">
+        {% for producto in productos %}
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">{{ producto.nombre }}</h5>
+                <p class="card-text">{{ producto.descripcion }}</p>
+                <p><strong>${{ "%.2f"|format(producto.precio) }}</strong></p>
+                <p>Stock: {{ producto.stock }}</p>
+                <button class="btn btn-primary">Agregar al carrito</button>
+            </div>
+            </div>
+        </div>
+        {% endfor %}
+  </div>
+{% else %}
+  <p class="text-center">No hay productos disponibles.</p>
+{% endif %}
+
+</div>
+{% endblock %}

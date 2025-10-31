@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-4">
+      <div class="card p-4">
+        <h3 class="text-center mb-3">Crear una cuenta</h3>
+        <form method="POST" action="{{ url_for('register') }}">
+          <div class="mb-3">
+            <label for="nombre">Nombre completo</label>
+            <input type="text" class="form-control" id="nombre" name="nombre" required>
+          </div>
+          <div class="mb-3">
+            <label>Correo electrónico</label>
+            <input type="email" name="correo" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label>Contraseña</label>
+            <input type="password" name="contraseña" class="form-control" required>
+          </div>
+          <button class="btn btn-success w-100">Registrarse</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

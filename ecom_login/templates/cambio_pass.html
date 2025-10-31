@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-4">
+      <div class="card p-4">
+        <h3 class="text-center mb-3">Cambiar Contraseña</h3>
+        <form method="POST">
+          <div class="mb-3">
+            <label>Correo electrónico</label>
+            <input type="email" name="correo" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label>Nueva contraseña</label>
+            <input type="password" name="nueva" class="form-control" required>
+          </div>
+          <button class="btn btn-warning w-100">Actualizar contraseña</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

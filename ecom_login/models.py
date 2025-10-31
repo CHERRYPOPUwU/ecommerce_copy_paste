@@ -9,15 +9,15 @@ class Usuario(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), nullable=False)
     correo = db.Column(db.String(100), unique=True, nullable=False)
-    contraseña = db.Column(db.String(200), nullable=False)
+    contrasena = db.Column(db.String(200), nullable=False)
     rol = db.Column(db.String(20), default='cliente')  # 'cliente' o 'admin'
 
     # Métodos para manejar contraseñas seguras
     def set_password(self, password):
-        self.contraseña = generate_password_hash(password)
+        self.contrasena = generate_password_hash(password)
 
     def check_password(self, password):
-        return check_password_hash(self.contraseña, password)
+        return check_password_hash(self.contrasena, password)
 
 class Producto(db.Model):
     __tablename__ = 'productos'

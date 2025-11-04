@@ -86,8 +86,21 @@ def register():
 @login_required
 def change_password():
     if request.method == 'POST':
+        actual = request.form['actual']
         nueva = request.form['nueva']
-        current_user.set_password(nueva)
+        confirmar = request.form['confirmar']
+
+        # Validar contraseña actual
+        if not check_password_hash(current_user.contraseña, actual):
+            flash('La contraseña actual es incorrecta.', 'danger')
+            return redirect(url_for('change_password'))
+
+        if nueva != confirmar:
+            flash('Las contraseñas nuevas no coinciden.', 'warning')
+            return redirect(url_for('change_password'))
+
+        # Actualizar contraseña
+        current_user.contraseña = generate_password_hash(nueva)
         db.session.commit()
         flash('Contraseña actualizada correctamente.', 'success')
         return redirect(url_for('home'))

@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from .config import Config
-from .models import db, Usuario, Producto
+from .models import db, Usuario, Producto, CarritoItem
 from dotenv import load_dotenv
 import os
 
@@ -187,6 +187,48 @@ def eliminar_producto(id):
     db.session.commit()
     flash('Producto eliminado.', 'info')
     return redirect(url_for('admin_dashboard'))
+
+
+# ---------------------- CARRITO DE COMPRAS ----------------------
+@app.route('/carrito')
+@login_required
+def ver_carrito():
+    items = CarritoItem.query.filter_by(usuario_id=current_user.id).all()
+    total = sum(item.producto.precio * item.cantidad for item in items)
+    return render_template('user/carrito.html', items=items, total=total)
+
+@app.route('/carrito/agregar/<int:producto_id>', methods=['POST'])
+@login_required
+def agregar_carrito(producto_id):
+    item = CarritoItem.query.filter_by(usuario_id=current_user.id, producto_id=producto_id).first()
+    if item:
+        item.cantidad += 1
+    else:
+        nuevo = CarritoItem(usuario_id=current_user.id, producto_id=producto_id, cantidad=1)
+        db.session.add(nuevo)
+    db.session.commit()
+    flash('Producto agregado al carrito 🛒', 'success')
+    return redirect(url_for('home'))
+
+@app.route('/carrito/eliminar/<int:item_id>')
+@login_required
+def eliminar_item(item_id):
+    item = CarritoItem.query.get_or_404(item_id)
+    if item.usuario_id != current_user.id:
+        flash('Acción no permitida.', 'danger')
+        return redirect(url_for('ver_carrito'))
+    db.session.delete(item)
+    db.session.commit()
+    flash('Producto eliminado del carrito.', 'info')
+    return redirect(url_for('ver_carrito'))
+
+@app.route('/carrito/vaciar')
+@login_required
+def vaciar_carrito():
+    CarritoItem.query.filter_by(usuario_id=current_user.id).delete()
+    db.session.commit()
+    flash('Carrito vaciado correctamente.', 'info')
+    return redirect(url_for('ver_carrito'))
 
 
 # ---------- EDITAR PRODUCTO ----------

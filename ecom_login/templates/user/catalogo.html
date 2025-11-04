@@ -11,6 +11,13 @@
           <h5 class="card-title">{{ producto.nombre }}</h5>
           <p class="card-text">{{ producto.descripcion }}</p>
           <p class="fw-bold text-primary">${{ producto.precio }}</p>
+
+          <!-- 🔹 Botón para agregar al carrito -->
+          <form action="{{ url_for('agregar_carrito', producto_id=producto.id) }}" method="POST">
+            <button type="submit" class="btn btn-sm btn-success mt-2">
+              🛒 Agregar al carrito
+            </button>
+          </form>
         </div>
       </div>
     </div>

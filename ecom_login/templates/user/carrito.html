@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">🛒 Mi Carrito</h2>
+
+  {% if items %}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th>Precio</th>
+        <th>Cantidad</th>
+        <th>Subtotal</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ item.producto.nombre }}</td>
+        <td>${{ "%.2f"|format(item.producto.precio) }}</td>
+        <td>{{ item.cantidad }}</td>
+        <td>${{ "%.2f"|format(item.producto.precio * item.cantidad) }}</td>
+        <td>
+          <a href="{{ url_for('eliminar_item', item_id=item.id) }}" class="btn btn-sm btn-danger">🗑</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h4 class="text-end">Total: ${{ "%.2f"|format(total) }}</h4>
+  <div class="text-end mt-3">
+    <a href="{{ url_for('vaciar_carrito') }}" class="btn btn-outline-danger">Vaciar carrito</a>
+    <a href="#" class="btn btn-success">Finalizar compra</a>
+  </div>
+  {% else %}
+  <p class="text-center mt-4">Tu carrito está vacío 🛍️</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -91,7 +91,7 @@ def change_password():
         confirmar = request.form['confirmar']
 
         # Validar contraseña actual
-        if not check_password_hash(current_user.contraseña, actual):
+        if not check_password_hash(current_user.contrasena, actual):
             flash('La contraseña actual es incorrecta.', 'danger')
             return redirect(url_for('change_password'))
 
@@ -100,7 +100,7 @@ def change_password():
             return redirect(url_for('change_password'))
 
         # Actualizar contraseña
-        current_user.contraseña = generate_password_hash(nueva)
+        current_user.contrasena = generate_password_hash(nueva)
         db.session.commit()
         flash('Contraseña actualizada correctamente.', 'success')
         return redirect(url_for('home'))

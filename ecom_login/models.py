@@ -26,3 +26,4 @@ class Producto(db.Model):
     descripcion = db.Column(db.String(200))
     precio = db.Column(db.Float, nullable=False)
     stock = db.Column(db.Integer, nullable=False)
+    imagen = db.Column(db.String(300), nullable=True)

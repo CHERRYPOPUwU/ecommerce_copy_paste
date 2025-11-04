@@ -166,8 +166,9 @@ def nuevo_producto():
     descripcion = request.form['descripcion']
     precio = float(request.form['precio'])
     stock = int(request.form['stock'])
+    imagen = request.form['imagen']  # nuevo campo
 
-    producto = Producto(nombre=nombre, descripcion=descripcion, precio=precio, stock=stock)
+    producto = Producto(nombre=nombre, descripcion=descripcion, precio=precio, stock=stock, imagen=imagen)
     db.session.add(producto)
     db.session.commit()
     flash('Producto agregado correctamente.', 'success')
@@ -186,6 +187,30 @@ def eliminar_producto(id):
     db.session.commit()
     flash('Producto eliminado.', 'info')
     return redirect(url_for('admin_dashboard'))
+
+
+# ---------- EDITAR PRODUCTO ----------
+@app.route('/admin/productos/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_producto(id):
+    if current_user.rol != 'admin':
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('home'))
+
+    producto = Producto.query.get_or_404(id)
+
+    if request.method == 'POST':
+        producto.nombre = request.form['nombre']
+        producto.descripcion = request.form['descripcion']
+        producto.precio = float(request.form['precio'])
+        producto.stock = int(request.form['stock'])
+        producto.imagen = request.form['imagen']
+        db.session.commit()
+        flash('Producto actualizado correctamente.', 'success')
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('admin/editar_producto.html', producto=producto)
+
 
 # ---------------------- EJECUCIÓN ----------------------
 if __name__ == '__main__':

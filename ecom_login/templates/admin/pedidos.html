@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <h2 class="text-center mb-4">📋 Gestión de Pedidos</h2>
+
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>ID</th>
+        <th>Cliente</th>
+        <th>Fecha</th>
+        <th>Estado</th>
+        <th>Total</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pedido in pedidos %}
+      <tr>
+        <td>{{ pedido.id }}</td>
+        <td>{{ pedido.usuario.nombre }}</td>
+        <td>{{ pedido.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('cambiar_estado_pedido', pedido_id=pedido.id) }}">
+            <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
+              <option value="pendiente" {% if pedido.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+              <option value="enviado" {% if pedido.estado == 'enviado' %}selected{% endif %}>Enviado</option>
+              <option value="entregado" {% if pedido.estado == 'entregado' %}selected{% endif %}>Entregado</option>
+              <option value="cancelado" {% if pedido.estado == 'cancelado' %}selected{% endif %}>Cancelado</option>
+            </select>
+          </form>
+        </td>
+        <td>${{ pedido.total }}</td>
+        <td>
+          <a href="{{ url_for('detalle_pedido', pedido_id=pedido.id) }}" class="btn btn-outline-primary btn-sm">
+            Ver detalle
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

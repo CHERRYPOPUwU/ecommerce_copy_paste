@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from .config import Config
-from .models import db, Usuario, Producto, CarritoItem, session, Pedido, DetallePedido
+from .models import db, Usuario, Producto, CarritoItem, Pedido, DetallePedido
 from dotenv import load_dotenv
 import os
 
@@ -144,6 +144,35 @@ def admin_dashboard():
 
     productos = Producto.query.all()
     return render_template('admin/dashboard.html', productos=productos)
+
+
+# ---------- ADMIN: LISTAR PEDIDOS ----------
+@app.route('/admin/pedidos')
+@login_required
+def admin_pedidos():
+    if current_user.rol != 'admin':
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('home'))
+
+    pedidos = Pedido.query.order_by(Pedido.fecha.desc()).all()
+    return render_template('admin/pedidos.html', pedidos=pedidos)
+
+
+# ---------- ADMIN: CAMBIAR ESTADO ----------
+@app.route('/admin/pedido/<int:pedido_id>/estado', methods=['POST'])
+@login_required
+def cambiar_estado_pedido(pedido_id):
+    if current_user.rol != 'admin':
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('home'))
+
+    pedido = Pedido.query.get_or_404(pedido_id)
+    nuevo_estado = request.form['estado']
+    pedido.estado = nuevo_estado
+    db.session.commit()
+
+    flash(f'Estado del pedido #{pedido.id} actualizado a "{nuevo_estado}".', 'success')
+    return redirect(url_for('admin_pedidos'))
 
 
 @app.route('/dashboard')

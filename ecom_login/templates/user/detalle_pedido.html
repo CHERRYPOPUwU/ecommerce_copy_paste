@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <h2 class="text-center mb-4">📦 Detalle del Pedido #{{ pedido.id }}</h2>
+
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body">
+      <p><strong>Fecha:</strong> {{ pedido.fecha.strftime('%d/%m/%Y %H:%M') }}</p>
+      <p><strong>Estado:</strong>
+        <span class="badge bg-info text-dark">{{ pedido.estado }}</span>
+      </p>
+      <p><strong>Total:</strong> ${{ pedido.total }}</p>
+    </div>
+  </div>
+
+  <h4 class="mb-3">Productos del pedido</h4>
+  <table class="table table-bordered align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Producto</th>
+        <th>Precio</th>
+        <th>Cantidad</th>
+        <th>Subtotal</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in detalles %}
+      <tr>
+        <td>{{ item.producto.nombre }}</td>
+        <td>${{ item.producto.precio }}</td>
+        <td>{{ item.cantidad }}</td>
+        <td>${{ item.subtotal }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="text-center mt-4">
+    <a href="{{ url_for('mis_pedidos') }}" class="btn btn-secondary">← Volver a mis pedidos</a>
+  </div>
+</div>
+{% endblock %}

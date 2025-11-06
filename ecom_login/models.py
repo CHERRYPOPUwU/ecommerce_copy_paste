@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 db = SQLAlchemy()
 
@@ -28,6 +29,27 @@ class Producto(db.Model):
     stock = db.Column(db.Integer, nullable=False)
     imagen = db.Column(db.String(255), nullable=True)
 
+class Pedido(db.Model):
+    __tablename__ = 'pedidos'
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    fecha = db.Column(db.DateTime, default=datetime.utcnow)
+    total = db.Column(db.Float, nullable=False)
+    estado = db.Column(db.String(20), default='pendiente')  # pendiente, enviado, entregado, cancelado
+
+    usuario = db.relationship('Usuario', backref='pedidos', lazy=True)
+
+class DetallePedido(db.Model):
+    __tablename__ = 'detalles_pedido'
+    id = db.Column(db.Integer, primary_key=True)
+    pedido_id = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)
+    producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
+    cantidad = db.Column(db.Integer, nullable=False)
+    subtotal = db.Column(db.Float, nullable=False)
+
+    pedido = db.relationship('Pedido', backref='detalles', lazy=True)
+    producto = db.relationship('Producto')
+    
 class CarritoItem(db.Model):
     __tablename__ = 'carrito_items'
     id = db.Column(db.Integer, primary_key=True)

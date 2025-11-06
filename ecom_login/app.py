@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from .config import Config
-from .models import db, Usuario, Producto, CarritoItem
+from .models import db, Usuario, Producto, CarritoItem, session, Pedido, DetallePedido
 from dotenv import load_dotenv
 import os
 
@@ -229,6 +229,53 @@ def vaciar_carrito():
     db.session.commit()
     flash('Carrito vaciado correctamente.', 'info')
     return redirect(url_for('ver_carrito'))
+
+
+# ---------- FINALIZAR COMPRA ----------
+@app.route('/finalizar_compra', methods=['POST'])
+@login_required
+def finalizar_compra():
+    carrito = session.get('carrito', {})
+    if not carrito:
+        flash('Tu carrito está vacío.', 'warning')
+        return redirect(url_for('carrito'))
+
+    total = sum(item['precio'] * item['cantidad'] for item in carrito.values())
+
+    nuevo_pedido = Pedido(usuario_id=current_user.id, total=total)
+    db.session.add(nuevo_pedido)
+    db.session.commit()
+
+    for item in carrito.values():
+        detalle = DetallePedido(
+            pedido_id=nuevo_pedido.id,
+            producto_id=item['id'],
+            cantidad=item['cantidad'],
+            subtotal=item['precio'] * item['cantidad']
+        )
+        db.session.add(detalle)
+
+    db.session.commit()
+    session['carrito'] = {}  # Vaciar carrito
+    flash('Compra realizada con éxito. ¡Gracias por tu pedido!', 'success')
+    return redirect(url_for('mis_pedidos'))
+
+
+# ---------- MIS PEDIDOS ----------
+@app.route('/mis_pedidos')
+@login_required
+def mis_pedidos():
+    pedidos = Pedido.query.filter_by(usuario_id=current_user.id).order_by(Pedido.fecha.desc()).all()
+    return render_template('mis_pedidos.html', pedidos=pedidos)
+
+
+# ---------- DETALLE DE PEDIDO ----------
+@app.route('/pedido/<int:pedido_id>')
+@login_required
+def detalle_pedido(pedido_id):
+    pedido = Pedido.query.filter_by(id=pedido_id, usuario_id=current_user.id).first_or_404()
+    detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
+    return render_template('user/detalle_pedido.html', pedido=pedido, detalles=detalles)
 
 
 # ---------- EDITAR PRODUCTO ----------

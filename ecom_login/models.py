@@ -49,10 +49,10 @@ class DetallePedido(db.Model):
     pedido_id = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)
     producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
-    subtotal = db.Column(db.Float, nullable=False)
+    precio = db.Column(db.Float, nullable=False)  # 🔹 Asegúrate de tener esto
 
-    # relación hacia el producto
-    producto = db.relationship('Producto', backref='detalles_producto', lazy=True)
+    producto = db.relationship('Producto', backref='detalles_pedido', lazy=True)
+
 
 class CarritoItem(db.Model):
     __tablename__ = 'carrito_items'

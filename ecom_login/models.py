@@ -34,10 +34,11 @@ class Pedido(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
-    total = db.Column(db.Float, nullable=False)
-    estado = db.Column(db.String(20), default='pendiente')  # pendiente, enviado, entregado, cancelado
+    total = db.Column(db.Float, nullable=False, default=0.0)
+    estado = db.Column(db.String(20), default='Pendiente')
 
-    usuario = db.relationship('Usuario', backref='pedidos', lazy=True)
+    detalles = db.relationship('DetallePedido', backref='pedido', lazy=True)
+
 
 class DetallePedido(db.Model):
     __tablename__ = 'detalles_pedido'
@@ -49,7 +50,7 @@ class DetallePedido(db.Model):
 
     pedido = db.relationship('Pedido', backref='detalles', lazy=True)
     producto = db.relationship('Producto')
-    
+
 class CarritoItem(db.Model):
     __tablename__ = 'carrito_items'
     id = db.Column(db.Integer, primary_key=True)

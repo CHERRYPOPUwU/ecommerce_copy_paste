@@ -260,31 +260,36 @@ def vaciar_carrito():
 @app.route('/finalizar_compra', methods=['POST'])
 @login_required
 def finalizar_compra():
-    # Verificar si el carrito tiene productos
-    carrito = CarritoItem.query.filter_by(usuario_id=current_user.id).all()
-    if not carrito:
+    items = CarritoItem.query.filter_by(usuario_id=current_user.id).all()
+    if not items:
         flash('Tu carrito está vacío.', 'warning')
         return redirect(url_for('ver_carrito'))
 
-    # Crear el pedido
-    nuevo_pedido = Pedido(usuario_id=current_user.id, estado='Pendiente')
+    total = 0.0
+    for i in items:
+        if i.producto and i.producto.precio is not None:
+            total += i.producto.precio * i.cantidad
+
+    if total <= 0:
+        flash('Error al calcular el total. Revisa tu carrito.', 'danger')
+        return redirect(url_for('ver_carrito'))
+
+    nuevo_pedido = Pedido(usuario_id=current_user.id, total=total)
     db.session.add(nuevo_pedido)
+    db.session.flush()
+
+    for i in items:
+        if i.producto:
+            detalle = DetallePedido(
+                pedido_id=nuevo_pedido.id,
+                producto_id=i.producto_id,
+                cantidad=i.cantidad,
+                subtotal=i.producto.precio * i.cantidad
+            )
+            db.session.add(detalle)
+            db.session.delete(i)
+
     db.session.commit()
-
-    # Crear detalles del pedido
-    for item in carrito:
-        detalle = DetallePedido(
-            pedido_id=nuevo_pedido.id,
-            producto_id=item.producto_id,
-            cantidad=item.cantidad,
-            precio_unitario=item.producto.precio
-        )
-        db.session.add(detalle)
-
-    # Vaciar carrito
-    CarritoItem.query.filter_by(usuario_id=current_user.id).delete()
-    db.session.commit()
-
     flash('Compra finalizada correctamente. ¡Gracias por tu pedido!', 'success')
     return redirect(url_for('mis_pedidos'))
 

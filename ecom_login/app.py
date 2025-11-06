@@ -154,6 +154,18 @@ def admin_pedidos():
     return render_template('admin/pedidos.html', pedidos=pedidos)
 
 
+# ---------- ADMIN: VER DETALLE DE PEDIDO ----------
+@app.route('/admin/pedido/<int:pedido_id>')
+@login_required
+def admin_detalle_pedido(pedido_id):
+    if current_user.rol != 'admin':
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('home'))
+    
+    pedido = Pedido.query.get_or_404(pedido_id)
+    return render_template('admin/detalle_pedido_admin.html', pedido=pedido)
+
+
 # ---------- ADMIN: CAMBIAR ESTADO ----------
 @app.route('/admin/pedido/<int:pedido_id>/estado', methods=['POST'])
 @login_required

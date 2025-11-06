@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container mt-5">
+  <h2 class="text-center mb-4">📦 Detalle del Pedido #{{ pedido.id }}</h2>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5>👤 Cliente: {{ pedido.usuario.nombre }}</h5>
+      <p>📧 {{ pedido.usuario.correo }}</p>
+      <p>🗓 Fecha: {{ pedido.fecha.strftime('%Y-%m-%d %H:%M') }}</p>
+
+      <form method="POST" action="{{ url_for('cambiar_estado_pedido', pedido_id=pedido.id) }}" class="mt-3">
+        <label for="estado" class="form-label">🛠 Estado del pedido:</label>
+        <div class="input-group" style="max-width: 300px;">
+          <select name="estado" id="estado" class="form-select">
+            <option value="Pendiente" {% if pedido.estado == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+            <option value="Enviado" {% if pedido.estado == 'Enviado' %}selected{% endif %}>Enviado</option>
+            <option value="Entregado" {% if pedido.estado == 'Entregado' %}selected{% endif %}>Entregado</option>
+          </select>
+          <button type="submit" class="btn btn-primary">Actualizar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="mb-3">🧾 Productos en este pedido</h4>
+      <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>Producto</th>
+              <th>Precio</th>
+              <th>Cantidad</th>
+              <th>Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for detalle in pedido.detalles %}
+            <tr>
+              <td>{{ detalle.producto.nombre }}</td>
+              <td>${{ detalle.precio }}</td>
+              <td>{{ detalle.cantidad }}</td>
+              <td>${{ detalle.precio * detalle.cantidad }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <h5 class="text-end mt-3 fw-bold">💰 Total: ${{ pedido.total }}</h5>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

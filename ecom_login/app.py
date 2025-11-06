@@ -26,16 +26,12 @@ def load_user(user_id):
     return Usuario.query.get(int(user_id))
 
 # ---------------------- RUTAS ----------------------
-
 @app.route('/')
 @login_required
 def home():
-    if current_user.rol == 'admin':
-        return render_template('admin/dashboard.html', nombre=current_user.correo)
-    
-    # Si no es admin, mostrar los productos
     productos = Producto.query.all()
     return render_template('user/catalogo.html', nombre=current_user.correo, productos=productos)
+
 
 # ---------- LOGIN ----------
 @app.route('/login', methods=['GET', 'POST'])
@@ -264,29 +260,32 @@ def vaciar_carrito():
 @app.route('/finalizar_compra', methods=['POST'])
 @login_required
 def finalizar_compra():
-    carrito = session.get('carrito', {})
+    # Verificar si el carrito tiene productos
+    carrito = CarritoItem.query.filter_by(usuario_id=current_user.id).all()
     if not carrito:
         flash('Tu carrito está vacío.', 'warning')
-        return redirect(url_for('carrito'))
+        return redirect(url_for('ver_carrito'))
 
-    total = sum(item['precio'] * item['cantidad'] for item in carrito.values())
-
-    nuevo_pedido = Pedido(usuario_id=current_user.id, total=total)
+    # Crear el pedido
+    nuevo_pedido = Pedido(usuario_id=current_user.id, estado='Pendiente')
     db.session.add(nuevo_pedido)
     db.session.commit()
 
-    for item in carrito.values():
+    # Crear detalles del pedido
+    for item in carrito:
         detalle = DetallePedido(
             pedido_id=nuevo_pedido.id,
-            producto_id=item['id'],
-            cantidad=item['cantidad'],
-            subtotal=item['precio'] * item['cantidad']
+            producto_id=item.producto_id,
+            cantidad=item.cantidad,
+            precio_unitario=item.producto.precio
         )
         db.session.add(detalle)
 
+    # Vaciar carrito
+    CarritoItem.query.filter_by(usuario_id=current_user.id).delete()
     db.session.commit()
-    session['carrito'] = {}  # Vaciar carrito
-    flash('Compra realizada con éxito. ¡Gracias por tu pedido!', 'success')
+
+    flash('Compra finalizada correctamente. ¡Gracias por tu pedido!', 'success')
     return redirect(url_for('mis_pedidos'))
 
 
@@ -294,8 +293,8 @@ def finalizar_compra():
 @app.route('/mis_pedidos')
 @login_required
 def mis_pedidos():
-    pedidos = Pedido.query.filter_by(usuario_id=current_user.id).order_by(Pedido.fecha.desc()).all()
-    return render_template('mis_pedidos.html', pedidos=pedidos)
+    pedidos = Pedido.query.filter_by(usuario_id=current_user.id).all()
+    return render_template('user/mis_pedidos.html', pedidos=pedidos)
 
 
 # ---------- DETALLE DE PEDIDO ----------

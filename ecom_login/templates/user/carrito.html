@@ -32,7 +32,11 @@
   <h4 class="text-end">Total: ${{ "%.2f"|format(total) }}</h4>
   <div class="text-end mt-3">
     <a href="{{ url_for('vaciar_carrito') }}" class="btn btn-outline-danger">Vaciar carrito</a>
-    <a href="#" class="btn btn-success">Finalizar compra</a>
+    <form method="POST" action="{{ url_for('finalizar_compra') }}">
+      <button type="submit" class="btn btn-success w-100 mt-3">
+        Finalizar compra
+      </button>
+    </form>
   </div>
   {% else %}
   <p class="text-center mt-4">Tu carrito está vacío 🛍️</p>

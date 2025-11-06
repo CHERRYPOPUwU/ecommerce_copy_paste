@@ -37,7 +37,8 @@ class Pedido(db.Model):
     total = db.Column(db.Float, nullable=False, default=0.0)
     estado = db.Column(db.String(20), default='Pendiente')
 
-    detalles = db.relationship('DetallePedido', backref='pedido', lazy=True)
+    # relación hacia los detalles del pedido
+    detalles = db.relationship('DetallePedido', backref='pedido_padre', lazy=True)
 
 
 class DetallePedido(db.Model):
@@ -48,8 +49,8 @@ class DetallePedido(db.Model):
     cantidad = db.Column(db.Integer, nullable=False)
     subtotal = db.Column(db.Float, nullable=False)
 
-    pedido = db.relationship('Pedido', backref='detalles', lazy=True)
-    producto = db.relationship('Producto')
+    # relación hacia el producto
+    producto = db.relationship('Producto', backref='detalles_producto', lazy=True)
 
 class CarritoItem(db.Model):
     __tablename__ = 'carrito_items'

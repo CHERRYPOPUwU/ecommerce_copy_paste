@@ -1,29 +1,132 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container mt-5">
-  <h2 class="text-center mb-4">🛍️ Catálogo de Productos</h2>
-  <div class="row">
-    {% for producto in productos %}
-    <div class="col-md-3 mb-4">
-      <div class="card shadow-sm h-100">
-        <img src="{{ producto.imagen or url_for('static', filename='img/default.png') }}" class="card-img-top" alt="{{ producto.nombre }}">
-        <div class="card-body text-center">
-          <h5 class="card-title">{{ producto.nombre }}</h5>
-          <p class="card-text">{{ producto.descripcion }}</p>
-          <p class="fw-bold text-primary">${{ producto.precio }}</p>
+  <!-- Encabezado del catálogo -->
+  <div class="text-center mb-5">
+    <h1 class="display-4 fw-bold mb-3" style="background: linear-gradient(135deg, #FF6B9D 0%, #C084FC 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+      ✨ Catálogo de Coleccionables ✨
+    </h1>
+    <p class="lead text-muted">Descubre los mejores productos para tu colección</p>
+  </div>
 
-          <!-- 🔹 Botón para agregar al carrito -->
-          <form action="{{ url_for('agregar_carrito', producto_id=producto.id) }}" method="POST">
-            <button type="submit" class="btn btn-sm btn-success mt-2">
-              🛒 Agregar al carrito
-            </button>
-          </form>
+  <!-- Grid de productos -->
+  <div class="row g-4">
+    {% for producto in productos %}
+    <div class="col-lg-3 col-md-4 col-sm-6">
+      <div class="card h-100 producto-card">
+        <!-- Imagen del producto -->
+        <div class="position-relative overflow-hidden">
+          <img src="{{ producto.imagen or url_for('static', filename='img/default.png') }}" 
+               class="card-img-top" 
+               alt="{{ producto.nombre }}"
+               style="height: 280px; object-fit: cover;">
+          
+          <!-- Badge de stock -->
+          {% if producto.stock < 5 %}
+          <span class="position-absolute top-0 end-0 badge bg-danger m-2">
+            ¡Últimas unidades!
+          </span>
+          {% elif producto.stock < 10 %}
+          <span class="position-absolute top-0 end-0 badge bg-warning m-2">
+            Stock limitado
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Contenido de la card -->
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title mb-2">{{ producto.nombre }}</h5>
+          <p class="card-text text-muted small mb-3">{{ producto.descripcion }}</p>
+          
+          <!-- Separador -->
+          <div class="mt-auto">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <span class="text-muted small d-block">Precio</span>
+                <span class="h4 mb-0 fw-bold" style="background: linear-gradient(135deg, #FF6B9D 0%, #C084FC 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                  ${{ "%.2f"|format(producto.precio) }}
+                </span>
+              </div>
+              <div class="text-end">
+                <span class="text-muted small d-block">Stock</span>
+                <span class="badge" style="background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);">
+                  {{ producto.stock }} unid.
+                </span>
+              </div>
+            </div>
+
+            <!-- Botón de agregar al carrito -->
+            <form action="{{ url_for('agregar_carrito', producto_id=producto.id) }}" method="POST">
+              <button type="submit" class="btn btn-primary w-100" 
+                      {% if producto.stock == 0 %}disabled{% endif %}>
+                {% if producto.stock > 0 %}
+                  🛒 Agregar al carrito
+                {% else %}
+                  😞 Agotado
+                {% endif %}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
     {% else %}
-    <p class="text-center text-muted">No hay productos disponibles.</p>
+    <div class="col-12">
+      <div class="text-center py-5">
+        <div class="mb-4" style="font-size: 5rem;">🎁</div>
+        <h3 class="text-muted">No hay productos disponibles</h3>
+        <p class="text-muted">¡Pronto agregaremos nuevos coleccionables!</p>
+      </div>
+    </div>
     {% endfor %}
   </div>
+
+  <!-- Sección de información adicional -->
+  {% if productos %}
+  <div class="row mt-5 g-4">
+    <div class="col-md-4">
+      <div class="card text-center p-4" style="background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%); border: none;">
+        <div class="mb-3" style="font-size: 3rem;">🚚</div>
+        <h5 class="fw-bold">Envío Rápido</h5>
+        <p class="text-muted small mb-0">Recibe tus coleccionables en tiempo récord</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-center p-4" style="background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%); border: none;">
+        <div class="mb-3" style="font-size: 3rem;">🔒</div>
+        <h5 class="fw-bold">Pago Seguro</h5>
+        <p class="text-muted small mb-0">Tus datos protegidos en cada compra</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-center p-4" style="background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); border: none;">
+        <div class="mb-3" style="font-size: 3rem;">⭐</div>
+        <h5 class="fw-bold">Productos Auténticos</h5>
+        <p class="text-muted small mb-0">100% originales y verificados</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div>
+
+<style>
+.producto-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.producto-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+}
+
+.producto-card .card-img-top {
+  transition: transform 0.5s ease;
+}
+
+.producto-card:hover .card-img-top {
+  transform: scale(1.1);
+}
+</style>
 {% endblock %}

@@ -1,45 +1,157 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-5">
-  <h2 class="mb-4">🛒 Mi Carrito</h2>
+<div class="container mt-5 mb-5">
+  <div class="text-center mb-5">
+    <h1 class="display-5 fw-bold mb-2" style="background: linear-gradient(135deg, #FF6B9D 0%, #C084FC 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+      🛒 Mi Carrito de Compras
+    </h1>
+    <p class="text-muted">Revisa tus productos antes de finalizar</p>
+  </div>
 
   {% if items %}
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>Producto</th>
-        <th>Precio</th>
-        <th>Cantidad</th>
-        <th>Subtotal</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in items %}
-      <tr>
-        <td>{{ item.producto.nombre }}</td>
-        <td>${{ "%.2f"|format(item.producto.precio) }}</td>
-        <td>{{ item.cantidad }}</td>
-        <td>${{ "%.2f"|format(item.producto.precio * item.cantidad) }}</td>
-        <td>
-          <a href="{{ url_for('eliminar_item', item_id=item.id) }}" class="btn btn-sm btn-danger">🗑</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="row g-4">
+    <!-- Lista de productos -->
+    <div class="col-lg-8">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-4">📦 Productos ({{ items|length }})</h5>
+          
+          {% for item in items %}
+          <div class="row align-items-center mb-4 pb-4 border-bottom">
+            <!-- Imagen del producto -->
+            <div class="col-md-2 col-3">
+              <img src="{{ item.producto.imagen or url_for('static', filename='img/default.png') }}" 
+                   class="img-fluid rounded" 
+                   alt="{{ item.producto.nombre }}"
+                   style="height: 80px; width: 80px; object-fit: cover;">
+            </div>
 
-  <h4 class="text-end">Total: ${{ "%.2f"|format(total) }}</h4>
-  <div class="text-end mt-3">
-    <a href="{{ url_for('vaciar_carrito') }}" class="btn btn-outline-danger">Vaciar carrito</a>
-    <form method="POST" action="{{ url_for('finalizar_compra') }}">
-      <button type="submit" class="btn btn-success w-100 mt-3">
-        Finalizar compra
-      </button>
-    </form>
+            <!-- Información del producto -->
+            <div class="col-md-4 col-5">
+              <h6 class="fw-bold mb-1">{{ item.producto.nombre }}</h6>
+              <p class="text-muted small mb-0">{{ item.producto.descripcion[:50] }}...</p>
+            </div>
+
+            <!-- Cantidad -->
+            <div class="col-md-2 col-4">
+              <div class="text-center">
+                <span class="text-muted small d-block mb-1">Cantidad</span>
+                <span class="badge bg-primary fs-6">{{ item.cantidad }}</span>
+              </div>
+            </div>
+
+            <!-- Precio -->
+            <div class="col-md-2 col-6 mt-3 mt-md-0">
+              <div class="text-center">
+                <span class="text-muted small d-block">Precio unit.</span>
+                <span class="fw-bold">${{ "%.2f"|format(item.producto.precio) }}</span>
+              </div>
+            </div>
+
+            <!-- Subtotal y acciones -->
+            <div class="col-md-2 col-6 mt-3 mt-md-0">
+              <div class="text-center">
+                <span class="text-muted small d-block">Subtotal</span>
+                <span class="fw-bold h5 mb-2 d-block" style="color: #FF6B9D;">
+                  ${{ "%.2f"|format(item.producto.precio * item.cantidad) }}
+                </span>
+                <a href="{{ url_for('eliminar_item', item_id=item.id) }}" 
+                   class="btn btn-sm btn-outline-danger">
+                  🗑️ Eliminar
+                </a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumen del pedido -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-4">💰 Resumen del Pedido</h5>
+          
+          <div class="d-flex justify-content-between mb-3">
+            <span class="text-muted">Productos ({{ items|length }})</span>
+            <span class="fw-bold">${{ "%.2f"|format(total) }}</span>
+          </div>
+
+          <div class="d-flex justify-content-between mb-3">
+            <span class="text-muted">Envío</span>
+            <span class="text-success fw-bold">GRATIS 🎉</span>
+          </div>
+
+          <hr class="my-3">
+
+          <div class="d-flex justify-content-between mb-4">
+            <span class="h5 fw-bold">Total</span>
+            <span class="h4 fw-bold" style="background: linear-gradient(135deg, #FF6B9D 0%, #C084FC 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+              ${{ "%.2f"|format(total) }}
+            </span>
+          </div>
+
+          <!-- Botones de acción -->
+          <form method="POST" action="{{ url_for('finalizar_compra') }}" class="mb-3">
+            <button type="submit" class="btn btn-success w-100 btn-lg mb-2">
+              ✅ Finalizar Compra
+            </button>
+          </form>
+
+          <a href="{{ url_for('home') }}" class="btn btn-outline-secondary w-100 mb-2">
+            ⬅️ Seguir Comprando
+          </a>
+
+          <a href="{{ url_for('vaciar_carrito') }}" class="btn btn-outline-danger w-100">
+            🗑️ Vaciar Carrito
+          </a>
+
+          <!-- Información adicional -->
+          <div class="mt-4 p-3 rounded" style="background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%);">
+            <div class="text-center">
+              <div class="mb-2" style="font-size: 2rem;">🔒</div>
+              <p class="small mb-0 fw-bold">Compra 100% Segura</p>
+              <p class="small text-muted mb-0">Tus datos están protegidos</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+
   {% else %}
-  <p class="text-center mt-4">Tu carrito está vacío 🛍️</p>
+  <!-- Carrito vacío -->
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-sm border-0 text-center p-5">
+        <div class="mb-4" style="font-size: 6rem;">🛒</div>
+        <h3 class="fw-bold mb-3">Tu carrito está vacío</h3>
+        <p class="text-muted mb-4">¡Agrega algunos coleccionables increíbles!</p>
+        <a href="{{ url_for('home') }}" class="btn btn-primary btn-lg">
+          🛍️ Ir a Comprar
+        </a>
+      </div>
+    </div>
+  </div>
   {% endif %}
 </div>
+
+<style>
+@media (max-width: 768px) {
+  .sticky-top {
+    position: relative !important;
+  }
+}
+
+.card {
+  border-radius: 20px;
+}
+
+.border-bottom:last-child {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+</style>
 {% endblock %}

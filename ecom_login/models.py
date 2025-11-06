@@ -37,6 +37,8 @@ class Pedido(db.Model):
     total = db.Column(db.Float, nullable=False, default=0.0)
     estado = db.Column(db.String(20), default='Pendiente')
 
+    usuario = db.relationship('Usuario', backref='pedidos', lazy=True)
+
     # relación hacia los detalles del pedido
     detalles = db.relationship('DetallePedido', backref='pedido_padre', lazy=True)
 

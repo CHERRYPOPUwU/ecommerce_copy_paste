@@ -38,9 +38,9 @@
             <!-- Selector de cantidad -->
             <div class="col-md-3 col-12 mt-3 mt-md-0">
               <form method="POST" action="{{ url_for('actualizar_cantidad_carrito', item_id=item.id) }}" class="cantidad-form">
-                <label class="form-label small fw-bold mb-1">Cantidad:</label>
+                <label for="cantidad_{{ item.id }}" class="form-label small fw-bold mb-1">Cantidad:</label>
                 <div class="input-group input-group-sm" style="max-width: 150px;">
-                  <select name="cantidad" class="form-select" onchange="this.form.submit()">
+                  <select id="cantidad_{{ item.id }}" name="cantidad" class="form-select" onchange="this.form.submit()">
                     {% for i in range(1, [item.producto.stock + 1, 21]|min) %}
                     <option value="{{ i }}" {% if i == item.cantidad %}selected{% endif %}>{{ i }}</option>
                     {% endfor %}

@@ -59,8 +59,8 @@
             <form action="{{ url_for('agregar_carrito', producto_id=producto.id) }}" method="POST">
               {% if producto.stock > 0 %}
               <div class="mb-2">
-                <label class="form-label small fw-bold">Cantidad:</label>
-                <select name="cantidad" class="form-select form-select-sm" {% if producto.stock == 0 %}disabled{% endif %}>
+                <label for="cantidad_{{ producto.id }}" class="form-label small fw-bold">Cantidad:</label>
+                <select id="cantidad_{{ producto.id }}" name="cantidad" class="form-select form-select-sm" {% if producto.stock == 0 %}disabled{% endif %}>
                   {% for i in range(1, [producto.stock + 1, 11]|min) %}
                   <option value="{{ i }}">{{ i }}</option>
                   {% endfor %}

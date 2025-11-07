@@ -141,8 +141,8 @@ body {
 }
 
 .btn-success {
-   background: linear-gradient(135deg, var(--success) 0%, #10B981 100%);
-   color: white;
+   background: linear-gradient(135deg, #10B981 0%, #0FD18A 100%);
+   color: #000000;
 }
 
 .btn-success:hover {
@@ -152,8 +152,8 @@ body {
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, var(--success) 0%, #10B981 100%);
-  color: white;
+  background: linear-gradient(135deg, #10B981 0%, #0FD18A 100%);
+  color: #000000;
 }
 
 .btn-danger:hover {
@@ -284,18 +284,18 @@ body {
 }
 
 .bg-warning {
-  background: linear-gradient(135deg, var(--success) 0%, #10B981 100%);
-  color: white;
+  background: linear-gradient(135deg, #10B981 0%, #0FD18A 100%);
+  color: #000000;
 }
 
 .bg-info {
-  background: linear-gradient(135deg, var(--success) 0%, #10B981 100%);
-  color: white;
+  background: linear-gradient(135deg, #10B981 0%, #0FD18A 100%);
+  color: #000000;
 }
 
 .bg-success {
-  background: linear-gradient(135deg, var(--success) 0%, #10B981 100%);
-  color: white;
+  background: linear-gradient(135deg, #10B981 0%, #0FD18A 100%);
+  color: #000000;
 }
 
 /* ========== FORMS ELEGANTES ========== */

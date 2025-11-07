@@ -87,6 +87,7 @@ body {
 .card:hover {
   transform: translateY(-8px) scale(1.02);
   box-shadow: var(--shadow-lg);
+  animation: float 2s ease-in-out infinite;
 }
 
 .card-img-top {
@@ -141,7 +142,7 @@ body {
 
 .btn-success {
   background: linear-gradient(135deg, var(--success) 0%, #10B981 100%);
-  color: white;
+  color: #595959;
 }
 
 .btn-success:hover {
@@ -152,7 +153,7 @@ body {
 
 .btn-danger {
   background: linear-gradient(135deg, var(--danger) 0%, #EF4444 100%);
-  color: white;
+  color: #595959;
 }
 
 .btn-danger:hover {
@@ -284,12 +285,12 @@ body {
 
 .bg-warning {
   background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%) !important;
-  color: white !important;
+  color: #595959;
 }
 
 .bg-info {
   background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%) !important;
-  color: white !important;
+  color: #595959;
 }
 
 .bg-success {
@@ -334,10 +335,6 @@ footer {
   50% {
     transform: translateY(-10px);
   }
-}
-
-.card:hover {
-  animation: float 2s ease-in-out infinite;
 }
 
 /* ========== RESPONSIVE ========== */

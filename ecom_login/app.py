@@ -521,25 +521,28 @@ def pago_tarjeta(pedido_id):
         # Validación básica 
         if len(numero_tarjeta) == 16 and len(cvv) == 3:
             try:
-                # AHORA SÍ reducir stock (solo al confirmar pago)
+                # Verificar y reducir stock de cada producto
                 detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
                 for detalle in detalles:
                     producto = Producto.query.get(detalle.producto_id)
                     if producto:
-                        # Verificar stock real disponible
+                        # Verificar stock disponible
                         stock_disponible = obtener_stock_disponible(detalle.producto_id)
                         
-                        if stock_disponible >= detalle.cantidad:
-                            # No modificamos producto.stock aquí, el stock se gestiona
-                            # a través de los pedidos confirmados
-                            pass
-                        else:
+                        if stock_disponible < detalle.cantidad:
                             flash(
                                 f'No hay suficiente stock disponible de {producto.nombre}. '
                                 f'Stock disponible: {stock_disponible}',
                                 'danger'
                             )
                             return redirect(url_for('pago_tarjeta', pedido_id=pedido.id))
+                        
+                        # ✅ REDUCIR EL STOCK FÍSICO
+                        producto.stock -= detalle.cantidad
+                        
+                        # Validar que no quede negativo (seguridad extra)
+                        if producto.stock < 0:
+                            producto.stock = 0
                 
                 # Guardar método de pago
                 metodo = MetodoPago(
@@ -562,7 +565,7 @@ def pago_tarjeta(pedido_id):
                 # Limpiar sesión
                 session.pop('pedido_pendiente', None)
                 
-                flash('¡Pago procesado exitosamente!', 'success')
+                flash('¡Pago procesado exitosamente! 🎉', 'success')
                 return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
             
             except Exception as e:
@@ -601,24 +604,28 @@ def pago_pse(pedido_id):
         # Validación 
         if banco and tipo_persona and numero_documento:
             try:
-                # AHORA SÍ reducir stock (solo al confirmar pago)
+                # Verificar y reducir stock de cada producto
                 detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
                 for detalle in detalles:
                     producto = Producto.query.get(detalle.producto_id)
                     if producto:
-                        # Verificar stock real disponible
+                        # Verificar stock disponible
                         stock_disponible = obtener_stock_disponible(detalle.producto_id)
                         
-                        if stock_disponible >= detalle.cantidad:
-                            # No modificamos producto.stock aquí
-                            pass
-                        else:
+                        if stock_disponible < detalle.cantidad:
                             flash(
                                 f'No hay suficiente stock disponible de {producto.nombre}. '
                                 f'Stock disponible: {stock_disponible}',
                                 'danger'
                             )
                             return redirect(url_for('pago_pse', pedido_id=pedido.id))
+                        
+                        # ✅ REDUCIR EL STOCK FÍSICO
+                        producto.stock -= detalle.cantidad
+                        
+                        # Validar que no quede negativo (seguridad extra)
+                        if producto.stock < 0:
+                            producto.stock = 0
                 
                 # Guardar método de pago
                 metodo = MetodoPago(
@@ -643,7 +650,7 @@ def pago_pse(pedido_id):
                 # Limpiar sesión
                 session.pop('pedido_pendiente', None)
                 
-                flash('¡Pago PSE procesado exitosamente!', 'success')
+                flash('¡Pago PSE procesado exitosamente! 🎉', 'success')
                 return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
             
             except Exception as e:

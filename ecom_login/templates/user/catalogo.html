@@ -55,8 +55,22 @@
               </div>
             </div>
 
-            <!-- Botón de agregar al carrito -->
+            <!-- Formulario para agregar al carrito con selector de cantidad -->
             <form action="{{ url_for('agregar_carrito', producto_id=producto.id) }}" method="POST">
+              {% if producto.stock > 0 %}
+              <div class="mb-2">
+                <label class="form-label small fw-bold">Cantidad:</label>
+                <select name="cantidad" class="form-select form-select-sm" {% if producto.stock == 0 %}disabled{% endif %}>
+                  {% for i in range(1, [producto.stock + 1, 11]|min) %}
+                  <option value="{{ i }}">{{ i }}</option>
+                  {% endfor %}
+                  {% if producto.stock > 10 %}
+                  <option value="{{ producto.stock }}">{{ producto.stock }} (Máximo)</option>
+                  {% endif %}
+                </select>
+              </div>
+              {% endif %}
+              
               <button type="submit" class="btn btn-primary w-100" 
                       {% if producto.stock == 0 %}disabled{% endif %}>
                 {% if producto.stock > 0 %}

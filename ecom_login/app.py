@@ -51,9 +51,9 @@ def login():
 
             # Redirigir según rol
             if usuario.rol == 'admin':
-                return redirect(url_for('admin_dashboard'))  # <-- ruta del panel admin
+                return redirect(url_for('admin_dashboard'))
             else:
-                return redirect(url_for('home'))  # <-- vista de cliente
+                return redirect(url_for('home'))
 
         else:
             flash('Correo o contraseña incorrectos.', 'danger')
@@ -187,6 +187,48 @@ def cambiar_estado_pedido(pedido_id):
     return redirect(url_for('admin_pedidos'))
 
 
+# ---------- ADMIN: CANCELAR PEDIDO ----------
+@app.route('/admin/pedido/<int:pedido_id>/cancelar', methods=['POST'])
+@login_required
+def cancelar_pedido_admin(pedido_id):
+    if current_user.rol != 'admin':
+        flash(ACCESS_DENIED_MSG, 'danger')
+        return redirect(url_for('home'))
+
+    pedido = Pedido.query.get_or_404(pedido_id)
+    
+    # Solo se pueden cancelar pedidos que no estén entregados o ya cancelados
+    if pedido.estado in ['Entregado', 'Cancelado']:
+        flash(f'No se puede cancelar un pedido con estado "{pedido.estado}".', 'warning')
+        return redirect(url_for('admin_pedidos'))
+    
+    try:
+        # Si el pedido está confirmado (ya se descontó stock), devolver el stock
+        if pedido.estado in ['Confirmado', 'Enviado']:
+            detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
+            for detalle in detalles:
+                producto = Producto.query.get(detalle.producto_id)
+                if producto:
+                    producto.stock += detalle.cantidad
+        
+        # Cambiar estado a Cancelado
+        pedido.estado = 'Cancelado'
+        
+        # Actualizar estado de pago si existe
+        metodo_pago = MetodoPago.query.filter_by(pedido_id=pedido.id).first()
+        if metodo_pago:
+            metodo_pago.estado_pago = 'Cancelado'
+        
+        db.session.commit()
+        flash(f'Pedido #{pedido.id} cancelado exitosamente. Stock restaurado.', 'success')
+    
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al cancelar el pedido: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin_pedidos'))
+
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -230,11 +272,47 @@ def eliminar_producto(id):
     return redirect(url_for('admin_dashboard'))
 
 
+# ---------------------- FUNCIÓN AUXILIAR PARA CALCULAR STOCK DISPONIBLE ----------------------
+def obtener_stock_disponible(producto_id):
+    """
+    Calcula el stock real disponible de un producto.
+    Stock disponible = Stock total - Stock en pedidos confirmados
+    No cuenta el stock en carritos ni en pedidos pendientes de pago.
+    """
+    producto = Producto.query.get(producto_id)
+    if not producto:
+        return 0
+    
+    # Calcular stock reservado en pedidos confirmados (pagados)
+    stock_reservado = db.session.query(
+        db.func.sum(DetallePedido.cantidad)
+    ).join(Pedido).filter(
+        DetallePedido.producto_id == producto_id,
+        Pedido.estado.in_(['Confirmado', 'Enviado'])
+    ).scalar() or 0
+    
+    return producto.stock - stock_reservado
+
+
 # ---------------------- CARRITO DE COMPRAS ----------------------
 @app.route('/carrito')
 @login_required
 def ver_carrito():
     items = CarritoItem.query.filter_by(usuario_id=current_user.id).all()
+    
+    # Verificar disponibilidad de cada item
+    advertencias = []
+    for item in items:
+        stock_disponible = obtener_stock_disponible(item.producto_id)
+        if item.cantidad > stock_disponible:
+            advertencias.append(
+                f'{item.producto.nombre}: Solo hay {stock_disponible} unidades disponibles. '
+                f'Ajusta la cantidad en tu carrito.'
+            )
+    
+    for advertencia in advertencias:
+        flash(advertencia, 'warning')
+    
     total = sum(item.producto.precio * item.cantidad for item in items)
     return render_template('user/carrito.html', items=items, total=total)
 
@@ -245,8 +323,18 @@ def agregar_carrito(producto_id):
     # Obtener el producto
     producto = Producto.query.get_or_404(producto_id)
     
-    # Verificar si hay stock disponible
-    if producto.stock <= 0:
+    # Obtener cantidad del formulario (por defecto 1)
+    try:
+        cantidad = int(request.form.get('cantidad', 1))
+        if cantidad < 1:
+            cantidad = 1
+    except ValueError:
+        cantidad = 1
+    
+    # Verificar stock disponible (no cuenta carritos ni pedidos pendientes)
+    stock_disponible = obtener_stock_disponible(producto_id)
+    
+    if stock_disponible <= 0:
         flash('Este producto está agotado.', 'danger')
         return redirect(url_for('home'))
     
@@ -258,21 +346,74 @@ def agregar_carrito(producto_id):
     
     if item:
         # Verificar que no exceda el stock disponible
-        if item.cantidad + 1 > producto.stock:
-            flash(f'No hay más stock disponible de {producto.nombre}. Stock actual: {producto.stock}', 'warning')
+        nueva_cantidad = item.cantidad + cantidad
+        if nueva_cantidad > stock_disponible:
+            flash(
+                f'No hay suficiente stock disponible de {producto.nombre}. '
+                f'Stock disponible: {stock_disponible}. Ya tienes {item.cantidad} en tu carrito.',
+                'warning'
+            )
             return redirect(url_for('home'))
-        item.cantidad += 1
+        item.cantidad = nueva_cantidad
     else:
+        # Verificar que la cantidad no exceda el stock disponible
+        if cantidad > stock_disponible:
+            flash(
+                f'Solo hay {stock_disponible} unidades disponibles de {producto.nombre}.',
+                'warning'
+            )
+            cantidad = stock_disponible
+        
         nuevo = CarritoItem(
             usuario_id=current_user.id, 
             producto_id=producto_id, 
-            cantidad=1
+            cantidad=cantidad
         )
         db.session.add(nuevo)
     
     db.session.commit()
-    flash(f' {producto.nombre} agregado al carrito 🛒', 'success')
+    
+    if cantidad == 1:
+        flash(f'✅ {producto.nombre} agregado al carrito 🛒', 'success')
+    else:
+        flash(f'✅ {cantidad} unidades de {producto.nombre} agregadas al carrito 🛒', 'success')
+    
     return redirect(url_for('home'))
+
+
+@app.route('/carrito/actualizar/<int:item_id>', methods=['POST'])
+@login_required
+def actualizar_cantidad_carrito(item_id):
+    item = CarritoItem.query.get_or_404(item_id)
+    
+    if item.usuario_id != current_user.id:
+        flash('Acción no permitida.', 'danger')
+        return redirect(url_for('ver_carrito'))
+    
+    try:
+        nueva_cantidad = int(request.form.get('cantidad', 1))
+        if nueva_cantidad < 1:
+            nueva_cantidad = 1
+        
+        # Verificar stock disponible
+        stock_disponible = obtener_stock_disponible(item.producto_id)
+        
+        if nueva_cantidad > stock_disponible:
+            flash(
+                f'Solo hay {stock_disponible} unidades disponibles de {item.producto.nombre}.',
+                'warning'
+            )
+            nueva_cantidad = stock_disponible
+        
+        item.cantidad = nueva_cantidad
+        db.session.commit()
+        flash('Cantidad actualizada.', 'success')
+    
+    except ValueError:
+        flash('Cantidad inválida.', 'danger')
+    
+    return redirect(url_for('ver_carrito'))
+
 
 @app.route('/carrito/eliminar/<int:item_id>')
 @login_required
@@ -305,14 +446,20 @@ def finalizar_compra():
             flash('Tu carrito está vacío.', 'warning')
             return redirect(url_for('ver_carrito'))
 
+        # Verificar stock disponible de cada producto
         for item in carrito:
-            if item.producto.stock < item.cantidad:
-                flash(f'No hay suficiente stock de {item.producto.nombre}. Stock disponible: {item.producto.stock}', 'danger')
+            stock_disponible = obtener_stock_disponible(item.producto_id)
+            if stock_disponible < item.cantidad:
+                flash(
+                    f'No hay suficiente stock disponible de {item.producto.nombre}. '
+                    f'Stock disponible: {stock_disponible}',
+                    'danger'
+                )
                 return redirect(url_for('ver_carrito'))
 
         total = sum(item.producto.precio * item.cantidad for item in carrito)
 
-        # Crear pedido
+        # Crear pedido con estado "Pendiente de Pago"
         pedido = Pedido(usuario_id=current_user.id, total=total, estado='Pendiente de Pago')
         db.session.add(pedido)
         db.session.commit()
@@ -374,16 +521,24 @@ def pago_tarjeta(pedido_id):
         # Validación básica 
         if len(numero_tarjeta) == 16 and len(cvv) == 3:
             try:
-                # reducir stock
+                # AHORA SÍ reducir stock (solo al confirmar pago)
                 detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
                 for detalle in detalles:
                     producto = Producto.query.get(detalle.producto_id)
                     if producto:
+                        # Verificar stock real disponible
+                        stock_disponible = obtener_stock_disponible(detalle.producto_id)
                         
-                        if producto.stock >= detalle.cantidad:
-                            producto.stock -= detalle.cantidad
+                        if stock_disponible >= detalle.cantidad:
+                            # No modificamos producto.stock aquí, el stock se gestiona
+                            # a través de los pedidos confirmados
+                            pass
                         else:
-                            flash(f'No hay suficiente stock de {producto.nombre}', 'danger')
+                            flash(
+                                f'No hay suficiente stock disponible de {producto.nombre}. '
+                                f'Stock disponible: {stock_disponible}',
+                                'danger'
+                            )
                             return redirect(url_for('pago_tarjeta', pedido_id=pedido.id))
                 
                 # Guardar método de pago
@@ -391,12 +546,12 @@ def pago_tarjeta(pedido_id):
                     pedido_id=pedido.id,
                     tipo_pago='tarjeta',
                     estado_pago='Aprobado',
-                    numero_tarjeta=numero_tarjeta[-4:], #protege el numero
+                    numero_tarjeta=numero_tarjeta[-4:],
                     nombre_titular=nombre_titular
                 )
                 db.session.add(metodo)
                 
-                # Actualizar estado del pedido
+                # Actualizar estado del pedido a Confirmado
                 pedido.estado = 'Confirmado'
                 
                 # Limpiar carrito
@@ -446,16 +601,23 @@ def pago_pse(pedido_id):
         # Validación 
         if banco and tipo_persona and numero_documento:
             try:
-                # REDUCIR STOCK 
+                # AHORA SÍ reducir stock (solo al confirmar pago)
                 detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
                 for detalle in detalles:
                     producto = Producto.query.get(detalle.producto_id)
                     if producto:
+                        # Verificar stock real disponible
+                        stock_disponible = obtener_stock_disponible(detalle.producto_id)
                         
-                        if producto.stock >= detalle.cantidad:
-                            producto.stock -= detalle.cantidad
+                        if stock_disponible >= detalle.cantidad:
+                            # No modificamos producto.stock aquí
+                            pass
                         else:
-                            flash(f'No hay suficiente stock de {producto.nombre}', 'danger')
+                            flash(
+                                f'No hay suficiente stock disponible de {producto.nombre}. '
+                                f'Stock disponible: {stock_disponible}',
+                                'danger'
+                            )
                             return redirect(url_for('pago_pse', pedido_id=pedido.id))
                 
                 # Guardar método de pago
@@ -466,11 +628,11 @@ def pago_pse(pedido_id):
                     banco=banco,
                     tipo_persona=tipo_persona,
                     tipo_documento=tipo_documento,
-                    numero_documento=numero_documento[-4:]  #protege el numero
+                    numero_documento=numero_documento[-4:]
                 )
                 db.session.add(metodo)
                 
-                # Actualizar 
+                # Actualizar estado del pedido a Confirmado
                 pedido.estado = 'Confirmado'
                 
                 # Limpiar carrito
@@ -506,15 +668,6 @@ def confirmacion_pago(pedido_id):
     
     metodo = MetodoPago.query.filter_by(pedido_id=pedido.id).first()
     return render_template('user/confirmacion_pago.html', pedido=pedido, metodo=metodo)
-
-    # Limpiar el carrito
-    for item in carrito:
-        db.session.delete(item)
-
-    db.session.commit()
-
-    flash('Pedido finalizado correctamente.', 'success')
-    return redirect(url_for('mis_pedidos'))
 
 
 # ---------- MIS PEDIDOS ----------

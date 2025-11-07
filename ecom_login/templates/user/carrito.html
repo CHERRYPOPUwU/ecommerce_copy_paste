@@ -27,20 +27,37 @@
             </div>
 
             <!-- Información del producto -->
-            <div class="col-md-4 col-5">
+            <div class="col-md-3 col-5">
               <h6 class="fw-bold mb-1">{{ item.producto.nombre }}</h6>
               <p class="text-muted small mb-0">{{ item.producto.descripcion[:50] }}...</p>
+              <small class="text-success">
+                <i class="bi bi-check-circle-fill"></i> En stock
+              </small>
             </div>
 
-            <!-- Cantidad -->
-            <div class="col-md-2 col-4">
-              <div class="text-center">
-                <span class="text-muted small d-block mb-1">Cantidad</span>
-                <span class="badge bg-primary fs-6">{{ item.cantidad }}</span>
-              </div>
+            <!-- Selector de cantidad -->
+            <div class="col-md-3 col-12 mt-3 mt-md-0">
+              <form method="POST" action="{{ url_for('actualizar_cantidad_carrito', item_id=item.id) }}" class="cantidad-form">
+                <label class="form-label small fw-bold mb-1">Cantidad:</label>
+                <div class="input-group input-group-sm" style="max-width: 150px;">
+                  <select name="cantidad" class="form-select" onchange="this.form.submit()">
+                    {% for i in range(1, [item.producto.stock + 1, 21]|min) %}
+                    <option value="{{ i }}" {% if i == item.cantidad %}selected{% endif %}>{{ i }}</option>
+                    {% endfor %}
+                    {% if item.producto.stock > 20 %}
+                    <option value="{{ item.producto.stock }}" {% if item.cantidad == item.producto.stock %}selected{% endif %}>
+                      {{ item.producto.stock }} (Máx)
+                    </option>
+                    {% endif %}
+                  </select>
+                  <button type="submit" class="btn btn-outline-primary" style="display: none;">
+                    <i class="bi bi-arrow-repeat"></i>
+                  </button>
+                </div>
+              </form>
             </div>
 
-            <!-- Precio -->
+            <!-- Precio unitario -->
             <div class="col-md-2 col-6 mt-3 mt-md-0">
               <div class="text-center">
                 <span class="text-muted small d-block">Precio unit.</span>
@@ -56,7 +73,8 @@
                   ${{ "%.2f"|format(item.producto.precio * item.cantidad) }}
                 </span>
                 <a href="{{ url_for('eliminar_item', item_id=item.id) }}" 
-                   class="btn btn-sm btn-outline-danger">
+                   class="btn btn-sm btn-outline-danger"
+                   onclick="return confirm('¿Eliminar este producto del carrito?');">
                   🗑️ Eliminar
                 </a>
               </div>
@@ -95,7 +113,7 @@
           <!-- Botones de acción -->
           <form method="POST" action="{{ url_for('finalizar_compra') }}" class="mb-3">
             <button type="submit" class="btn btn-success w-100 btn-lg mb-2">
-                💳 Proceder al Pago
+              💳 Proceder al Pago
             </button>
           </form>
 
@@ -103,7 +121,9 @@
             ⬅️ Seguir Comprando
           </a>
 
-          <a href="{{ url_for('vaciar_carrito') }}" class="btn btn-outline-danger w-100">
+          <a href="{{ url_for('vaciar_carrito') }}" 
+             class="btn btn-outline-danger w-100"
+             onclick="return confirm('¿Estás seguro de vaciar todo el carrito?');">
             🗑️ Vaciar Carrito
           </a>
 
@@ -113,6 +133,22 @@
               <div class="mb-2" style="font-size: 2rem;">🔒</div>
               <p class="small mb-0 fw-bold">Compra 100% Segura</p>
               <p class="small text-muted mb-0">Tus datos están protegidos</p>
+            </div>
+          </div>
+
+          <!-- Beneficios -->
+          <div class="mt-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-truck text-success me-2"></i>
+              <small>Envío gratis en todos los pedidos</small>
+            </div>
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-shield-check text-success me-2"></i>
+              <small>Garantía de satisfacción</small>
+            </div>
+            <div class="d-flex align-items-center">
+              <i class="bi bi-arrow-counterclockwise text-success me-2"></i>
+              <small>Devoluciones fáciles</small>
             </div>
           </div>
         </div>
@@ -153,5 +189,49 @@
   padding-bottom: 0 !important;
   margin-bottom: 0 !important;
 }
+
+.cantidad-form select {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cantidad-form select:hover {
+  border-color: #FF6B9D;
+  box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
+}
+
+.input-group-sm .form-select {
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+}
+
+/* Animación al cambiar cantidad */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.cantidad-form select:focus {
+  animation: pulse 0.3s ease;
+}
 </style>
+
+<script>
+// Confirmación antes de vaciar carrito
+document.querySelectorAll('a[href*="vaciar_carrito"]').forEach(link => {
+  link.addEventListener('click', function(e) {
+    if (!confirm('¿Estás seguro de que quieres vaciar todo el carrito?')) {
+      e.preventDefault();
+    }
+  });
+});
+
+// Animación al actualizar cantidad
+document.querySelectorAll('.cantidad-form select').forEach(select => {
+  select.addEventListener('change', function() {
+    this.closest('.input-group').style.animation = 'pulse 0.3s ease';
+  });
+});
+</script>
 {% endblock %}

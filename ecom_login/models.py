@@ -50,10 +50,10 @@ class DetallePedido(db.Model):
     producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
     precio = db.Column(db.Float, nullable=False)
-    subtotal = db.Column(db.Float, nullable=False)  # 👈 AGREGA ESTA LÍNEA
- 
-    producto = db.relationship('Producto', backref='detalles_pedido', lazy=True)
+    subtotal = db.Column(db.Float, nullable=False)  # Mantener esta columna
     
+    producto = db.relationship('Producto', backref='detalles_pedido', lazy=True)
+
 class MetodoPago(db.Model):
     __tablename__ = 'metodos_pago'
     id = db.Column(db.Integer, primary_key=True)

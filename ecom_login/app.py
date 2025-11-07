@@ -234,17 +234,41 @@ def ver_carrito():
     total = sum(item.producto.precio * item.cantidad for item in items)
     return render_template('user/carrito.html', items=items, total=total)
 
+# Reemplaza la función agregar_carrito en ecom_login/app.py
+
 @app.route('/carrito/agregar/<int:producto_id>', methods=['POST'])
 @login_required
 def agregar_carrito(producto_id):
-    item = CarritoItem.query.filter_by(usuario_id=current_user.id, producto_id=producto_id).first()
+    # Obtener el producto
+    producto = Producto.query.get_or_404(producto_id)
+    
+    # Verificar si hay stock disponible
+    if producto.stock <= 0:
+        flash('❌ Este producto está agotado.', 'danger')
+        return redirect(url_for('home'))
+    
+    # Verificar si ya existe en el carrito
+    item = CarritoItem.query.filter_by(
+        usuario_id=current_user.id, 
+        producto_id=producto_id
+    ).first()
+    
     if item:
+        # Verificar que no exceda el stock disponible
+        if item.cantidad + 1 > producto.stock:
+            flash(f'❌ No hay más stock disponible de {producto.nombre}. Stock actual: {producto.stock}', 'warning')
+            return redirect(url_for('home'))
         item.cantidad += 1
     else:
-        nuevo = CarritoItem(usuario_id=current_user.id, producto_id=producto_id, cantidad=1)
+        nuevo = CarritoItem(
+            usuario_id=current_user.id, 
+            producto_id=producto_id, 
+            cantidad=1
+        )
         db.session.add(nuevo)
+    
     db.session.commit()
-    flash('Producto agregado al carrito 🛒', 'success')
+    flash(f'✅ {producto.nombre} agregado al carrito 🛒', 'success')
     return redirect(url_for('home'))
 
 @app.route('/carrito/eliminar/<int:item_id>')
@@ -273,33 +297,48 @@ def vaciar_carrito():
 @app.route('/finalizar_compra', methods=['POST'])
 @login_required
 def finalizar_compra():
-    carrito = CarritoItem.query.filter_by(usuario_id=current_user.id).all()
-    if not carrito:
-        flash('Tu carrito está vacío.', 'warning')
+    try:
+        carrito = CarritoItem.query.filter_by(usuario_id=current_user.id).all()
+        if not carrito:
+            flash('Tu carrito está vacío.', 'warning')
+            return redirect(url_for('ver_carrito'))
+
+        # ✅ VALIDAR STOCK ANTES DE CREAR EL PEDIDO
+        for item in carrito:
+            if item.producto.stock < item.cantidad:
+                flash(f'❌ No hay suficiente stock de {item.producto.nombre}. Stock disponible: {item.producto.stock}', 'danger')
+                return redirect(url_for('ver_carrito'))
+
+        total = sum(item.producto.precio * item.cantidad for item in carrito)
+
+        # Crear pedido
+        pedido = Pedido(usuario_id=current_user.id, total=total, estado='Pendiente de Pago')
+        db.session.add(pedido)
+        db.session.commit()
+
+        # Guardar detalles CON subtotal calculado
+        for item in carrito:
+            subtotal_calculado = item.producto.precio * item.cantidad
+            detalle = DetallePedido(
+                pedido_id=pedido.id,
+                producto_id=item.producto_id,
+                cantidad=item.cantidad,
+                precio=item.producto.precio,
+                subtotal=subtotal_calculado
+            )
+            db.session.add(detalle)
+
+        db.session.commit()
+
+        # Guardar ID del pedido en sesión y redirigir a selección de pago
+        session['pedido_pendiente'] = pedido.id
+        return redirect(url_for('seleccionar_metodo_pago'))
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ ERROR en finalizar_compra: {str(e)}")
+        flash(f'Error al procesar el pedido: {str(e)}', 'danger')
         return redirect(url_for('ver_carrito'))
-
-    total = sum(item.producto.precio * item.cantidad for item in carrito)
-
-    # Crear pedido
-    pedido = Pedido(usuario_id=current_user.id, total=total, estado='Pendiente de Pago')
-    db.session.add(pedido)
-    db.session.commit()
-
-    # Guardar detalles
-    for item in carrito:
-        detalle = DetallePedido(
-            pedido_id=pedido.id,
-            producto_id=item.producto_id,
-            cantidad=item.cantidad,
-            precio=item.producto.precio
-        )
-        db.session.add(detalle)
-
-    db.session.commit()
-
-    # Guardar ID del pedido en sesión y redirigir a selección de pago
-    session['pedido_pendiente'] = pedido.id
-    return redirect(url_for('seleccionar_metodo_pago'))
 
 # ---------- SELECCIONAR MÉTODO DE PAGO ----------
 @app.route('/pago/metodo')
@@ -313,6 +352,8 @@ def seleccionar_metodo_pago():
     pedido = Pedido.query.get_or_404(pedido_id)
     return render_template('user/seleccionar_pago.html', pedido=pedido)
 
+
+# Reemplaza las funciones pago_tarjeta y pago_pse en ecom_login/app.py
 
 # ---------- PROCESAR PAGO CON TARJETA ----------
 @app.route('/pago/tarjeta/<int:pedido_id>', methods=['GET', 'POST'])
@@ -333,29 +374,47 @@ def pago_tarjeta(pedido_id):
         
         # Validación básica (en producción usarías una pasarela real)
         if len(numero_tarjeta) == 16 and len(cvv) == 3:
-            # Guardar método de pago
-            metodo = MetodoPago(
-                pedido_id=pedido.id,
-                tipo_pago='tarjeta',
-                estado_pago='Aprobado',
-                numero_tarjeta=numero_tarjeta[-4:],  # Solo últimos 4 dígitos
-                nombre_titular=nombre_titular
-            )
-            db.session.add(metodo)
+            try:
+                # ✅ REDUCIR STOCK DE PRODUCTOS
+                detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
+                for detalle in detalles:
+                    producto = Producto.query.get(detalle.producto_id)
+                    if producto:
+                        # Verificar que hay stock suficiente
+                        if producto.stock >= detalle.cantidad:
+                            producto.stock -= detalle.cantidad
+                        else:
+                            flash(f'No hay suficiente stock de {producto.nombre}', 'danger')
+                            return redirect(url_for('pago_tarjeta', pedido_id=pedido.id))
+                
+                # Guardar método de pago
+                metodo = MetodoPago(
+                    pedido_id=pedido.id,
+                    tipo_pago='tarjeta',
+                    estado_pago='Aprobado',
+                    numero_tarjeta=numero_tarjeta[-4:],  # Solo últimos 4 dígitos
+                    nombre_titular=nombre_titular
+                )
+                db.session.add(metodo)
+                
+                # Actualizar estado del pedido
+                pedido.estado = 'Confirmado'
+                
+                # Limpiar carrito
+                CarritoItem.query.filter_by(usuario_id=current_user.id).delete()
+                
+                db.session.commit()
+                
+                # Limpiar sesión
+                session.pop('pedido_pendiente', None)
+                
+                flash('¡Pago procesado exitosamente! 🎉', 'success')
+                return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
             
-            # Actualizar estado del pedido
-            pedido.estado = 'Confirmado'
-            
-            # Limpiar carrito
-            CarritoItem.query.filter_by(usuario_id=current_user.id).delete()
-            
-            db.session.commit()
-            
-            # Limpiar sesión
-            session.pop('pedido_pendiente', None)
-            
-            flash('¡Pago procesado exitosamente! 🎉', 'success')
-            return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error al procesar el pago: {str(e)}', 'danger')
+                return redirect(url_for('pago_tarjeta', pedido_id=pedido.id))
         else:
             flash('Datos de tarjeta inválidos.', 'danger')
     
@@ -387,31 +446,49 @@ def pago_pse(pedido_id):
         
         # Validación básica
         if banco and tipo_persona and numero_documento:
-            # Guardar método de pago
-            metodo = MetodoPago(
-                pedido_id=pedido.id,
-                tipo_pago='pse',
-                estado_pago='Aprobado',
-                banco=banco,
-                tipo_persona=tipo_persona,
-                tipo_documento=tipo_documento,
-                numero_documento=numero_documento[-4:]  # Solo últimos 4 dígitos
-            )
-            db.session.add(metodo)
+            try:
+                # ✅ REDUCIR STOCK DE PRODUCTOS
+                detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
+                for detalle in detalles:
+                    producto = Producto.query.get(detalle.producto_id)
+                    if producto:
+                        # Verificar que hay stock suficiente
+                        if producto.stock >= detalle.cantidad:
+                            producto.stock -= detalle.cantidad
+                        else:
+                            flash(f'No hay suficiente stock de {producto.nombre}', 'danger')
+                            return redirect(url_for('pago_pse', pedido_id=pedido.id))
+                
+                # Guardar método de pago
+                metodo = MetodoPago(
+                    pedido_id=pedido.id,
+                    tipo_pago='pse',
+                    estado_pago='Aprobado',
+                    banco=banco,
+                    tipo_persona=tipo_persona,
+                    tipo_documento=tipo_documento,
+                    numero_documento=numero_documento[-4:]  # Solo últimos 4 dígitos
+                )
+                db.session.add(metodo)
+                
+                # Actualizar estado del pedido
+                pedido.estado = 'Confirmado'
+                
+                # Limpiar carrito
+                CarritoItem.query.filter_by(usuario_id=current_user.id).delete()
+                
+                db.session.commit()
+                
+                # Limpiar sesión
+                session.pop('pedido_pendiente', None)
+                
+                flash('¡Pago PSE procesado exitosamente! 🎉', 'success')
+                return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
             
-            # Actualizar estado del pedido
-            pedido.estado = 'Confirmado'
-            
-            # Limpiar carrito
-            CarritoItem.query.filter_by(usuario_id=current_user.id).delete()
-            
-            db.session.commit()
-            
-            # Limpiar sesión
-            session.pop('pedido_pendiente', None)
-            
-            flash('¡Pago PSE procesado exitosamente! 🎉', 'success')
-            return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error al procesar el pago: {str(e)}', 'danger')
+                return redirect(url_for('pago_pse', pedido_id=pedido.id))
         else:
             flash('Por favor completa todos los campos.', 'danger')
     

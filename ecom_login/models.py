@@ -49,11 +49,35 @@ class DetallePedido(db.Model):
     pedido_id = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)
     producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
-    precio = db.Column(db.Float, nullable=False)  # 🔹 Asegúrate de tener esto
+    precio = db.Column(db.Float, nullable=False)
+    
+    # Propiedad calculada para subtotal
+    @property
+    def subtotal(self):
+        return self.precio * self.cantidad
 
     producto = db.relationship('Producto', backref='detalles_pedido', lazy=True)
 
-
+class MetodoPago(db.Model):
+    __tablename__ = 'metodos_pago'
+    id = db.Column(db.Integer, primary_key=True)
+    pedido_id = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)
+    tipo_pago = db.Column(db.String(50), nullable=False)  # 'tarjeta' o 'pse'
+    estado_pago = db.Column(db.String(20), default='Pendiente')  # Pendiente, Aprobado, Rechazado
+    
+    # Campos para tarjeta
+    numero_tarjeta = db.Column(db.String(4), nullable=True)  # Solo últimos 4 dígitos
+    nombre_titular = db.Column(db.String(100), nullable=True)
+    
+    # Campos para PSE
+    banco = db.Column(db.String(100), nullable=True)
+    tipo_persona = db.Column(db.String(20), nullable=True)  # Natural o Jurídica
+    tipo_documento = db.Column(db.String(20), nullable=True)
+    numero_documento = db.Column(db.String(50), nullable=True)
+    
+    fecha_pago = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    pedido = db.relationship('Pedido', backref='metodo_pago', lazy=True)
 class CarritoItem(db.Model):
     __tablename__ = 'carrito_items'
     id = db.Column(db.Integer, primary_key=True)

@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5 mb-5">
+  <div class="row justify-content-center">
+    <div class="col-md-7">
+      <div class="card shadow-lg border-0 text-center p-5" style="border-radius: 20px;">
+        <!-- Icono de éxito -->
+        <div class="mb-4">
+          <div class="success-animation" style="font-size: 6rem;">✅</div>
+        </div>
+
+        <h1 class="fw-bold mb-3" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+          ¡Pago Exitoso!
+        </h1>
+        <p class="lead text-muted mb-4">Tu pedido ha sido confirmado correctamente</p>
+
+        <!-- Detalles del pedido -->
+        <div class="card mb-4" style="background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%); border: none;">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3">📦 Detalles del Pedido</h5>
+            <div class="row text-start">
+              <div class="col-6 mb-2">
+                <strong>Número de Pedido:</strong>
+              </div>
+              <div class="col-6 mb-2 text-end">
+                #{{ pedido.id }}
+              </div>
+              <div class="col-6 mb-2">
+                <strong>Total Pagado:</strong>
+              </div>
+              <div class="col-6 mb-2 text-end">
+                <span class="h5 mb-0 text-success">${{ "%.2f"|format(pedido.total) }}</span>
+              </div>
+              <div class="col-6 mb-2">
+                <strong>Método de Pago:</strong>
+              </div>
+              <div class="col-6 mb-2 text-end">
+                {% if metodo.tipo_pago == 'tarjeta' %}
+                  💳 Tarjeta ****{{ metodo.numero_tarjeta }}
+                {% else %}
+                  🏦 PSE - {{ metodo.banco }}
+                {% endif %}
+              </div>
+              <div class="col-6 mb-2">
+                <strong>Estado:</strong>
+              </div>
+              <div class="col-6 mb-2 text-end">
+                <span class="badge bg-success">{{ metodo.estado_pago }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="alert alert-info mb-4">
+          <strong>📧 Hemos enviado un correo de confirmación</strong><br>
+          <small>Revisa tu bandeja de entrada en {{ current_user.correo }}</small>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="d-grid gap-2">
+          <a href="{{ url_for('detalle_pedido', pedido_id=pedido.id) }}" 
+             class="btn btn-primary btn-lg">
+            📋 Ver Detalles del Pedido
+          </a>
+          <a href="{{ url_for('mis_pedidos') }}" 
+             class="btn btn-outline-primary btn-lg">
+            📦 Ver Todos mis Pedidos
+          </a>
+          <a href="{{ url_for('home') }}" 
+             class="btn btn-outline-secondary btn-lg">
+            🏠 Volver al Inicio
+          </a>
+        </div>
+
+        <!-- Mensaje de agradecimiento -->
+        <div class="mt-5 p-4 rounded" style="background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%);">
+          <h5 class="fw-bold mb-2">¡Gracias por tu compra! 🎉</h5>
+          <p class="text-muted small mb-0">
+            Tu pedido será procesado en las próximas horas.<br>
+            Te notificaremos cuando esté en camino.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.success-animation {
+  animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+</style>
+{% endblock %}

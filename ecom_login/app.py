@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from .config import Config
-from .models import db, Usuario, Producto, CarritoItem, Pedido, DetallePedido
+from .models import db, Usuario, Producto, CarritoItem, Pedido, DetallePedido, MetodoPago
 from dotenv import load_dotenv
 import os
 
@@ -269,28 +269,166 @@ def vaciar_carrito():
 
 
 # ---------- FINALIZAR COMPRA ----------
+# ---------- FINALIZAR COMPRA (REDIRIGE A PAGO) ----------
 @app.route('/finalizar_compra', methods=['POST'])
 @login_required
 def finalizar_compra():
     carrito = CarritoItem.query.filter_by(usuario_id=current_user.id).all()
     if not carrito:
         flash('Tu carrito está vacío.', 'warning')
-        return redirect(url_for('carrito'))
+        return redirect(url_for('ver_carrito'))
 
     total = sum(item.producto.precio * item.cantidad for item in carrito)
 
-    pedido = Pedido(usuario_id=current_user.id, total=total)
+    # Crear pedido
+    pedido = Pedido(usuario_id=current_user.id, total=total, estado='Pendiente de Pago')
     db.session.add(pedido)
     db.session.commit()
 
+    # Guardar detalles
     for item in carrito:
         detalle = DetallePedido(
             pedido_id=pedido.id,
             producto_id=item.producto_id,
             cantidad=item.cantidad,
-            precio=item.producto.precio  # 👈 ESTE CAMPO ES FUNDAMENTAL
+            precio=item.producto.precio
         )
         db.session.add(detalle)
+
+    db.session.commit()
+
+    # Guardar ID del pedido en sesión y redirigir a selección de pago
+    session['pedido_pendiente'] = pedido.id
+    return redirect(url_for('seleccionar_metodo_pago'))
+# ---------- SELECCIONAR MÉTODO DE PAGO ----------
+@app.route('/pago/metodo')
+@login_required
+def seleccionar_metodo_pago():
+    pedido_id = session.get('pedido_pendiente')
+    if not pedido_id:
+        flash('No hay ningún pedido pendiente.', 'warning')
+        return redirect(url_for('ver_carrito'))
+    
+    pedido = Pedido.query.get_or_404(pedido_id)
+    return render_template('user/seleccionar_pago.html', pedido=pedido)
+
+
+# ---------- PROCESAR PAGO CON TARJETA ----------
+@app.route('/pago/tarjeta/<int:pedido_id>', methods=['GET', 'POST'])
+@login_required
+def pago_tarjeta(pedido_id):
+    pedido = Pedido.query.get_or_404(pedido_id)
+    
+    if pedido.usuario_id != current_user.id:
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('home'))
+    
+    if request.method == 'POST':
+        # Obtener datos del formulario
+        numero_tarjeta = request.form['numero_tarjeta']
+        nombre_titular = request.form['nombre_titular']
+        fecha_expiracion = request.form['fecha_expiracion']
+        cvv = request.form['cvv']
+        
+        # Validación básica (en producción usarías una pasarela real)
+        if len(numero_tarjeta) == 16 and len(cvv) == 3:
+            # Guardar método de pago
+            metodo = MetodoPago(
+                pedido_id=pedido.id,
+                tipo_pago='tarjeta',
+                estado_pago='Aprobado',
+                numero_tarjeta=numero_tarjeta[-4:],  # Solo últimos 4 dígitos
+                nombre_titular=nombre_titular
+            )
+            db.session.add(metodo)
+            
+            # Actualizar estado del pedido
+            pedido.estado = 'Confirmado'
+            
+            # Limpiar carrito
+            CarritoItem.query.filter_by(usuario_id=current_user.id).delete()
+            
+            db.session.commit()
+            
+            # Limpiar sesión
+            session.pop('pedido_pendiente', None)
+            
+            flash('¡Pago procesado exitosamente! 🎉', 'success')
+            return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
+        else:
+            flash('Datos de tarjeta inválidos.', 'danger')
+    
+    return render_template('user/pago_tarjeta.html', pedido=pedido)
+
+
+# ---------- PROCESAR PAGO CON PSE ----------
+@app.route('/pago/pse/<int:pedido_id>', methods=['GET', 'POST'])
+@login_required
+def pago_pse(pedido_id):
+    pedido = Pedido.query.get_or_404(pedido_id)
+    
+    if pedido.usuario_id != current_user.id:
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('home'))
+    
+    # Lista de bancos colombianos
+    bancos = [
+        'Bancolombia', 'Banco de Bogotá', 'BBVA Colombia', 'Davivienda',
+        'Banco de Occidente', 'Banco Popular', 'Itaú', 'Banco Caja Social',
+        'Banco AV Villas', 'Banco Falabella', 'Scotiabank Colpatria'
+    ]
+    
+    if request.method == 'POST':
+        banco = request.form['banco']
+        tipo_persona = request.form['tipo_persona']
+        tipo_documento = request.form['tipo_documento']
+        numero_documento = request.form['numero_documento']
+        
+        # Validación básica
+        if banco and tipo_persona and numero_documento:
+            # Guardar método de pago
+            metodo = MetodoPago(
+                pedido_id=pedido.id,
+                tipo_pago='pse',
+                estado_pago='Aprobado',
+                banco=banco,
+                tipo_persona=tipo_persona,
+                tipo_documento=tipo_documento,
+                numero_documento=numero_documento[-4:]  # Solo últimos 4 dígitos
+            )
+            db.session.add(metodo)
+            
+            # Actualizar estado del pedido
+            pedido.estado = 'Confirmado'
+            
+            # Limpiar carrito
+            CarritoItem.query.filter_by(usuario_id=current_user.id).delete()
+            
+            db.session.commit()
+            
+            # Limpiar sesión
+            session.pop('pedido_pendiente', None)
+            
+            flash('¡Pago PSE procesado exitosamente! 🎉', 'success')
+            return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
+        else:
+            flash('Por favor completa todos los campos.', 'danger')
+    
+    return render_template('user/pago_pse.html', pedido=pedido, bancos=bancos)
+
+
+# ---------- CONFIRMACIÓN DE PAGO ----------
+@app.route('/pago/confirmacion/<int:pedido_id>')
+@login_required
+def confirmacion_pago(pedido_id):
+    pedido = Pedido.query.get_or_404(pedido_id)
+    
+    if pedido.usuario_id != current_user.id:
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('home'))
+    
+    metodo = MetodoPago.query.filter_by(pedido_id=pedido.id).first()
+    return render_template('user/confirmacion_pago.html', pedido=pedido, metodo=metodo)
 
     # Limpiar el carrito
     for item in carrito:

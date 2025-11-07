@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5 mb-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-lg border-0" style="border-radius: 20px;">
+        <div class="card-body p-5">
+          <div class="text-center mb-4">
+            <div style="font-size: 4rem;">🏦</div>
+            <h2 class="fw-bold mt-3">Pago con PSE</h2>
+            <p class="text-muted">Paga desde tu cuenta bancaria</p>
+          </div>
+
+          <div class="alert alert-info mb-4">
+            <strong>Total a pagar:</strong> 
+            <span class="float-end h5 mb-0">${{ "%.2f"|format(pedido.total) }}</span>
+          </div>
+
+          <form method="POST">
+            <div class="mb-4">
+              <label class="form-label fw-bold">Selecciona tu Banco</label>
+              <select name="banco" class="form-select form-select-lg" required>
+                <option value="">-- Selecciona un banco --</option>
+                {% for banco in bancos %}
+                <option value="{{ banco }}">{{ banco }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-bold">Tipo de Persona</label>
+              <select name="tipo_persona" class="form-select form-select-lg" required>
+                <option value="">-- Selecciona --</option>
+                <option value="Natural">Persona Natural</option>
+                <option value="Juridica">Persona Jurídica</option>
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-bold">Tipo de Documento</label>
+              <select name="tipo_documento" class="form-select form-select-lg" required>
+                <option value="">-- Selecciona --</option>
+                <option value="CC">Cédula de Ciudadanía</option>
+                <option value="CE">Cédula de Extranjería</option>
+                <option value="NIT">NIT</option>
+                <option value="TI">Tarjeta de Identidad</option>
+                <option value="PP">Pasaporte</option>
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-bold">Número de Documento</label>
+              <input type="text" 
+                     name="numero_documento" 
+                     class="form-control form-control-lg" 
+                     placeholder="Ingresa tu número de documento"
+                     required>
+            </div>
+
+            <div class="mb-4 p-3 rounded" style="background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%);">
+              <div class="d-flex align-items-center">
+                <div style="font-size: 2rem;" class="me-3">🔒</div>
+                <div>
+                  <small class="fw-bold d-block">Pago Seguro PSE</small>
+                  <small class="text-muted">Serás redirigido a la plataforma de tu banco</small>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-success btn-lg w-100 mb-3">
+              ✅ Continuar al Banco
+            </button>
+            <a href="{{ url_for('seleccionar_metodo_pago') }}" class="btn btn-outline-secondary w-100">
+              ⬅️ Cambiar Método de Pago
+            </a>
+          </form>
+
+          <div class="mt-4 p-3 rounded" style="background: #F9FAFB;">
+            <h6 class="fw-bold mb-2">ℹ️ Importante:</h6>
+            <ul class="small text-muted mb-0">
+              <li>Ten a mano tu usuario y clave del banco</li>
+              <li>El débito se realizará de forma inmediata</li>
+              <li>Recibirás confirmación por correo</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -268,8 +268,8 @@ def vaciar_carrito():
     return redirect(url_for('ver_carrito'))
 
 
-# ---------- FINALIZAR COMPRA ----------
-# ---------- FINALIZAR COMPRA (REDIRIGE A PAGO) ----------
+# Finalizar la compra
+
 @app.route('/finalizar_compra', methods=['POST'])
 @login_required
 def finalizar_compra():
@@ -300,6 +300,7 @@ def finalizar_compra():
     # Guardar ID del pedido en sesión y redirigir a selección de pago
     session['pedido_pendiente'] = pedido.id
     return redirect(url_for('seleccionar_metodo_pago'))
+
 # ---------- SELECCIONAR MÉTODO DE PAGO ----------
 @app.route('/pago/metodo')
 @login_required

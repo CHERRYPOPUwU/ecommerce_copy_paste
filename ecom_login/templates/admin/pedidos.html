@@ -62,7 +62,9 @@
                 </span>
               </td>
               <td>
-                <div class="btn-group" role="group">
+                <fieldset class="btn-group">
+                  <legend class="visually-hidden">Acciones del pedido</legend>
+
                   <!-- Ver detalles -->
                   <a href="{{ url_for('admin_detalle_pedido', pedido_id=pedido.id) }}" 
                      class="btn btn-sm btn-primary"
@@ -89,7 +91,7 @@
                     <i class="bi bi-x-circle"></i> Cancelar
                   </button>
                   {% endif %}
-                </div>
+                </fieldset>
               </td>
             </tr>
             {% else %}
@@ -205,6 +207,17 @@
   overflow: hidden;
 }
 
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  border: 0 !important;
+}
+
 @media (max-width: 768px) {
   .btn-group {
     display: flex;
@@ -220,24 +233,24 @@
 
 <script>
 // Confirmación mejorada para cancelación
-document.querySelectorAll('form[action*="cancelar"]').forEach(form => {
+for (const form of document.querySelectorAll('form[action*="cancelar"]')) {
   form.addEventListener('submit', function(e) {
     const pedidoId = this.action.split('/').pop().split('?')[0];
-    const confirmMsg = `⚠️ CANCELAR PEDIDO #${pedidoId}\n\n` +
-                      `Esta acción:\n` +
-                      `• Cancelará el pedido permanentemente\n` +
-                      `• Devolverá el stock si ya estaba confirmado\n` +
-                      `• Marcará el pago como cancelado\n\n` +
-                      `¿Estás seguro de continuar?`;
-    
+    const confirmMsg = `⚠ CANCELAR PEDIDO #${pedidoId}\n\n` +
+                       `Esta acción:\n` +
+                       `• Cancelará el pedido permanentemente\n` +
+                       `• Devolverá el stock si ya estaba confirmado\n` +
+                       `• Marcará el pago como cancelado\n\n` +
+                       `¿Estás seguro de continuar?`;
+
     if (!confirm(confirmMsg)) {
       e.preventDefault();
     }
   });
-});
+}
 
 // Highlight de fila al pasar el mouse
-document.querySelectorAll('tbody tr').forEach(row => {
+for (const row of document.querySelectorAll('tbody tr')) {
   row.addEventListener('mouseenter', function() {
     this.style.backgroundColor = 'rgba(255, 107, 157, 0.08)';
   });
@@ -245,6 +258,6 @@ document.querySelectorAll('tbody tr').forEach(row => {
   row.addEventListener('mouseleave', function() {
     this.style.backgroundColor = '';
   });
-});
+}
 </script>
 {% endblock %}

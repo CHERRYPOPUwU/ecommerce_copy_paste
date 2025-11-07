@@ -96,12 +96,12 @@
 <script>
 // Auto-formatear número de tarjeta
 document.querySelector('input[name="numero_tarjeta"]').addEventListener('input', function(e) {
-  this.value = this.value.replace(/\D/g, '');
+  this.value = this.value.replaceALL(/\D/g, '');
 });
 
 // Auto-formatear fecha de expiración
 document.querySelector('input[name="fecha_expiracion"]').addEventListener('input', function(e) {
-  let value = this.value.replace(/\D/g, '');
+  let value = this.value.replaceALL(/\D/g, '');
   if (value.length >= 2) {
     value = value.slice(0, 2) + '/' + value.slice(2, 4);
   }
@@ -110,7 +110,7 @@ document.querySelector('input[name="fecha_expiracion"]').addEventListener('input
 
 // Solo números en CVV
 document.querySelector('input[name="cvv"]').addEventListener('input', function(e) {
-  this.value = this.value.replace(/\D/g, '');
+  this.value = this.value.replaceALL(/\D/g, '');
 });
 </script>
 {% endblock %}

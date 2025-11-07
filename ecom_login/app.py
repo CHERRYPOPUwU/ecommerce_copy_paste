@@ -14,6 +14,10 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
 
+# config/messages.py
+ACCESS_DENIED_MSG = "Acceso denegado."
+
+
 # ---------------------- CONFIGURACIÓN DE LOGIN ----------------------
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -147,7 +151,7 @@ def admin_dashboard():
 @login_required
 def admin_pedidos():
     if current_user.rol != 'admin':
-        flash('Acceso denegado.', 'danger')
+        flash(ACCESS_DENIED_MSG, 'danger')
         return redirect(url_for('home'))
 
     pedidos = Pedido.query.order_by(Pedido.fecha.desc()).all()
@@ -171,7 +175,7 @@ def admin_detalle_pedido(pedido_id):
 @login_required
 def cambiar_estado_pedido(pedido_id):
     if current_user.rol != 'admin':
-        flash('Acceso denegado.', 'danger')
+        flash(ACCESS_DENIED_MSG, 'danger')
         return redirect(url_for('home'))
 
     pedido = Pedido.query.get_or_404(pedido_id)
@@ -196,7 +200,7 @@ def dashboard():
 @login_required
 def nuevo_producto():
     if current_user.rol != 'admin':
-        flash('Acceso denegado.', 'danger')
+        flash(ACCESS_DENIED_MSG, 'danger')
         return redirect(url_for('home'))
 
     nombre = request.form['nombre']
@@ -216,7 +220,7 @@ def nuevo_producto():
 @login_required
 def eliminar_producto(id):
     if current_user.rol != 'admin':
-        flash('Acceso denegado.', 'danger')
+        flash(ACCESS_DENIED_MSG, 'danger')
         return redirect(url_for('home'))
 
     producto = Producto.query.get_or_404(id)
@@ -357,7 +361,7 @@ def pago_tarjeta(pedido_id):
     pedido = Pedido.query.get_or_404(pedido_id)
     
     if pedido.usuario_id != current_user.id:
-        flash('Acceso denegado.', 'danger')
+        flash(ACCESS_DENIED_MSG, 'danger')
         return redirect(url_for('home'))
     
     if request.method == 'POST':
@@ -423,7 +427,7 @@ def pago_pse(pedido_id):
     pedido = Pedido.query.get_or_404(pedido_id)
     
     if pedido.usuario_id != current_user.id:
-        flash('Acceso denegado.', 'danger')
+        flash(ACCESS_DENIED_MSG, 'danger')
         return redirect(url_for('home'))
     
     # Lista de bancos
@@ -497,7 +501,7 @@ def confirmacion_pago(pedido_id):
     pedido = Pedido.query.get_or_404(pedido_id)
     
     if pedido.usuario_id != current_user.id:
-        flash('Acceso denegado.', 'danger')
+        flash(ACCESS_DENIED_MSG, 'danger')
         return redirect(url_for('home'))
     
     metodo = MetodoPago.query.filter_by(pedido_id=pedido.id).first()
@@ -535,7 +539,7 @@ def detalle_pedido(pedido_id):
 @login_required
 def editar_producto(id):
     if current_user.rol != 'admin':
-        flash('Acceso denegado.', 'danger')
+        flash(ACCESS_DENIED_MSG, 'danger')
         return redirect(url_for('home'))
 
     producto = Producto.query.get_or_404(id)

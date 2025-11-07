@@ -336,7 +336,6 @@ footer {
     transform: translateY(-10px);
   }
 }
-
 /* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
   .card-img-top {

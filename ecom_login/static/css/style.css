@@ -31,7 +31,7 @@ body {
   min-height: 100vh;
 }
 
-/* ========== NAVBAR ESTILO POP MART ========== */
+/* ========== NAVBAR  ========== */
 .navbar {
   background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(10px);
@@ -73,7 +73,7 @@ body {
   color: var(--danger) !important;
 }
 
-/* ========== CARDS DE PRODUCTOS ========== */
+/* ========== PRODUCTOS ========== */
 .card {
   border: none;
   border-radius: var(--radius);
@@ -118,7 +118,7 @@ body {
   margin-bottom: 1rem;
 }
 
-/* ========== BOTONES MODERNOS ========== */
+/* ========== BOTONES ========== */
 .btn {
   border: none;
   border-radius: 15px;
@@ -193,7 +193,7 @@ body {
   transform: translateY(-2px);
 }
 
-/* ========== ALERTAS BONITAS ========== */
+/* ========== ALERTAS ========== */
 .alert {
   border: none;
   border-radius: 15px;
@@ -233,7 +233,7 @@ body {
   color: #1E3A8A;
 }
 
-/* ========== TABLAS MODERNAS ========== */
+/* ========== TABLAS ========== */
 .table {
   background: white;
   border-radius: var(--radius);
@@ -275,7 +275,7 @@ body {
   background: rgba(255, 107, 157, 0.03);
 }
 
-/* ========== BADGES LINDOS ========== */
+/* ========== BADGES ========== */
 .badge {
   padding: 0.5rem 1rem;
   border-radius: 12px;
@@ -298,7 +298,7 @@ body {
   color: #000000;
 }
 
-/* ========== FORMS ELEGANTES ========== */
+/* ========== FORMS  ========== */
 .form-control, .form-select {
   border: 2px solid #E5E7EB;
   border-radius: 12px;

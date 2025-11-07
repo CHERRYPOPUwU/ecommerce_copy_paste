@@ -11,9 +11,9 @@ class Usuario(db.Model, UserMixin):
     nombre = db.Column(db.String(50), nullable=False)
     correo = db.Column(db.String(100), unique=True, nullable=False)
     contrasena = db.Column(db.String(200), nullable=False)
-    rol = db.Column(db.String(20), default='cliente')  # 'cliente' o 'admin'
+    rol = db.Column(db.String(20), default='cliente')  
 
-    # Métodos para manejar contraseñas seguras
+    # Contraseñas seguras
     def set_password(self, password):
         self.contrasena = generate_password_hash(password)
 
@@ -50,7 +50,7 @@ class DetallePedido(db.Model):
     producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
     precio = db.Column(db.Float, nullable=False)
-    subtotal = db.Column(db.Float, nullable=False)  # Mantener esta columna
+    subtotal = db.Column(db.Float, nullable=False)  
     
     producto = db.relationship('Producto', backref='detalles_pedido', lazy=True)
 
@@ -62,7 +62,7 @@ class MetodoPago(db.Model):
     estado_pago = db.Column(db.String(20), default='Pendiente')  # Pendiente, Aprobado, Rechazado
     
     # Campos para tarjeta
-    numero_tarjeta = db.Column(db.String(4), nullable=True)  # Solo últimos 4 dígitos
+    numero_tarjeta = db.Column(db.String(4), nullable=True) 
     nombre_titular = db.Column(db.String(100), nullable=True)
     
     # Campos para PSE

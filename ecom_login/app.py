@@ -203,7 +203,7 @@ def nuevo_producto():
     descripcion = request.form['descripcion']
     precio = float(request.form['precio'])
     stock = int(request.form['stock'])
-    imagen = request.form['imagen']  # nuevo campo
+    imagen = request.form['imagen'] 
 
     producto = Producto(nombre=nombre, descripcion=descripcion, precio=precio, stock=stock, imagen=imagen)
     db.session.add(producto)
@@ -234,7 +234,6 @@ def ver_carrito():
     total = sum(item.producto.precio * item.cantidad for item in items)
     return render_template('user/carrito.html', items=items, total=total)
 
-# Reemplaza la función agregar_carrito en ecom_login/app.py
 
 @app.route('/carrito/agregar/<int:producto_id>', methods=['POST'])
 @login_required
@@ -244,7 +243,7 @@ def agregar_carrito(producto_id):
     
     # Verificar si hay stock disponible
     if producto.stock <= 0:
-        flash('❌ Este producto está agotado.', 'danger')
+        flash('Este producto está agotado.', 'danger')
         return redirect(url_for('home'))
     
     # Verificar si ya existe en el carrito
@@ -256,7 +255,7 @@ def agregar_carrito(producto_id):
     if item:
         # Verificar que no exceda el stock disponible
         if item.cantidad + 1 > producto.stock:
-            flash(f'❌ No hay más stock disponible de {producto.nombre}. Stock actual: {producto.stock}', 'warning')
+            flash(f'No hay más stock disponible de {producto.nombre}. Stock actual: {producto.stock}', 'warning')
             return redirect(url_for('home'))
         item.cantidad += 1
     else:
@@ -268,7 +267,7 @@ def agregar_carrito(producto_id):
         db.session.add(nuevo)
     
     db.session.commit()
-    flash(f'✅ {producto.nombre} agregado al carrito 🛒', 'success')
+    flash(f' {producto.nombre} agregado al carrito 🛒', 'success')
     return redirect(url_for('home'))
 
 @app.route('/carrito/eliminar/<int:item_id>')
@@ -293,7 +292,6 @@ def vaciar_carrito():
 
 
 # Finalizar la compra
-
 @app.route('/finalizar_compra', methods=['POST'])
 @login_required
 def finalizar_compra():
@@ -303,10 +301,9 @@ def finalizar_compra():
             flash('Tu carrito está vacío.', 'warning')
             return redirect(url_for('ver_carrito'))
 
-        # ✅ VALIDAR STOCK ANTES DE CREAR EL PEDIDO
         for item in carrito:
             if item.producto.stock < item.cantidad:
-                flash(f'❌ No hay suficiente stock de {item.producto.nombre}. Stock disponible: {item.producto.stock}', 'danger')
+                flash(f'No hay suficiente stock de {item.producto.nombre}. Stock disponible: {item.producto.stock}', 'danger')
                 return redirect(url_for('ver_carrito'))
 
         total = sum(item.producto.precio * item.cantidad for item in carrito)
@@ -316,7 +313,7 @@ def finalizar_compra():
         db.session.add(pedido)
         db.session.commit()
 
-        # Guardar detalles CON subtotal calculado
+        # Guardar detalles CON subtotal
         for item in carrito:
             subtotal_calculado = item.producto.precio * item.cantidad
             detalle = DetallePedido(
@@ -336,7 +333,7 @@ def finalizar_compra():
     
     except Exception as e:
         db.session.rollback()
-        print(f"❌ ERROR en finalizar_compra: {str(e)}")
+        print(f"ERROR en finalizar_compra: {str(e)}")
         flash(f'Error al procesar el pedido: {str(e)}', 'danger')
         return redirect(url_for('ver_carrito'))
 
@@ -353,9 +350,7 @@ def seleccionar_metodo_pago():
     return render_template('user/seleccionar_pago.html', pedido=pedido)
 
 
-# Reemplaza las funciones pago_tarjeta y pago_pse en ecom_login/app.py
-
-# ---------- PROCESAR PAGO CON TARJETA ----------
+# ---------- PAGO CON TARJETA ----------
 @app.route('/pago/tarjeta/<int:pedido_id>', methods=['GET', 'POST'])
 @login_required
 def pago_tarjeta(pedido_id):
@@ -366,21 +361,21 @@ def pago_tarjeta(pedido_id):
         return redirect(url_for('home'))
     
     if request.method == 'POST':
-        # Obtener datos del formulario
+        # Obtener datos 
         numero_tarjeta = request.form['numero_tarjeta']
         nombre_titular = request.form['nombre_titular']
         fecha_expiracion = request.form['fecha_expiracion']
         cvv = request.form['cvv']
         
-        # Validación básica (en producción usarías una pasarela real)
+        # Validación básica 
         if len(numero_tarjeta) == 16 and len(cvv) == 3:
             try:
-                # ✅ REDUCIR STOCK DE PRODUCTOS
+                # reducir stock
                 detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
                 for detalle in detalles:
                     producto = Producto.query.get(detalle.producto_id)
                     if producto:
-                        # Verificar que hay stock suficiente
+                        
                         if producto.stock >= detalle.cantidad:
                             producto.stock -= detalle.cantidad
                         else:
@@ -392,7 +387,7 @@ def pago_tarjeta(pedido_id):
                     pedido_id=pedido.id,
                     tipo_pago='tarjeta',
                     estado_pago='Aprobado',
-                    numero_tarjeta=numero_tarjeta[-4:],  # Solo últimos 4 dígitos
+                    numero_tarjeta=numero_tarjeta[-4:], #protege el numero
                     nombre_titular=nombre_titular
                 )
                 db.session.add(metodo)
@@ -408,7 +403,7 @@ def pago_tarjeta(pedido_id):
                 # Limpiar sesión
                 session.pop('pedido_pendiente', None)
                 
-                flash('¡Pago procesado exitosamente! 🎉', 'success')
+                flash('¡Pago procesado exitosamente!', 'success')
                 return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
             
             except Exception as e:
@@ -421,7 +416,7 @@ def pago_tarjeta(pedido_id):
     return render_template('user/pago_tarjeta.html', pedido=pedido)
 
 
-# ---------- PROCESAR PAGO CON PSE ----------
+# ---------- PAGO CON PSE ----------
 @app.route('/pago/pse/<int:pedido_id>', methods=['GET', 'POST'])
 @login_required
 def pago_pse(pedido_id):
@@ -431,7 +426,7 @@ def pago_pse(pedido_id):
         flash('Acceso denegado.', 'danger')
         return redirect(url_for('home'))
     
-    # Lista de bancos colombianos
+    # Lista de bancos
     bancos = [
         'Bancolombia', 'Banco de Bogotá', 'BBVA Colombia', 'Davivienda',
         'Banco de Occidente', 'Banco Popular', 'Itaú', 'Banco Caja Social',
@@ -444,15 +439,15 @@ def pago_pse(pedido_id):
         tipo_documento = request.form['tipo_documento']
         numero_documento = request.form['numero_documento']
         
-        # Validación básica
+        # Validación 
         if banco and tipo_persona and numero_documento:
             try:
-                # ✅ REDUCIR STOCK DE PRODUCTOS
+                # REDUCIR STOCK 
                 detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
                 for detalle in detalles:
                     producto = Producto.query.get(detalle.producto_id)
                     if producto:
-                        # Verificar que hay stock suficiente
+                        
                         if producto.stock >= detalle.cantidad:
                             producto.stock -= detalle.cantidad
                         else:
@@ -467,11 +462,11 @@ def pago_pse(pedido_id):
                     banco=banco,
                     tipo_persona=tipo_persona,
                     tipo_documento=tipo_documento,
-                    numero_documento=numero_documento[-4:]  # Solo últimos 4 dígitos
+                    numero_documento=numero_documento[-4:]  #protege el numero
                 )
                 db.session.add(metodo)
                 
-                # Actualizar estado del pedido
+                # Actualizar 
                 pedido.estado = 'Confirmado'
                 
                 # Limpiar carrito
@@ -482,7 +477,7 @@ def pago_pse(pedido_id):
                 # Limpiar sesión
                 session.pop('pedido_pendiente', None)
                 
-                flash('¡Pago PSE procesado exitosamente! 🎉', 'success')
+                flash('¡Pago PSE procesado exitosamente!', 'success')
                 return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
             
             except Exception as e:

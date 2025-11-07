@@ -219,19 +219,20 @@
 
 <script>
 // Confirmación antes de vaciar carrito
-document.querySelectorAll('a[href*="vaciar_carrito"]').forEach(link => {
+for (const link of document.querySelectorAll('a[href*="vaciar_carrito"]')) {
   link.addEventListener('click', function(e) {
     if (!confirm('¿Estás seguro de que quieres vaciar todo el carrito?')) {
       e.preventDefault();
     }
   });
-});
+}
 
 // Animación al actualizar cantidad
-document.querySelectorAll('.cantidad-form select').forEach(select => {
+for (const select of document.querySelectorAll('.cantidad-form select')) {
   select.addEventListener('change', function() {
     this.closest('.input-group').style.animation = 'pulse 0.3s ease';
   });
-});
+}
+
 </script>
 {% endblock %}

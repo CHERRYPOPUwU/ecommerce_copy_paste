@@ -3,6 +3,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from .config import Config
 from .models import db, Usuario, Producto, CarritoItem, Pedido, DetallePedido, MetodoPago
+from app.utils.pagos_utils import verificar_propietario_pedido, verificar_y_actualizar_stock, registrar_pago_tarjeta, registrar_pago_pse
 from dotenv import load_dotenv
 import os
 
@@ -606,76 +607,73 @@ def seleccionar_metodo_pago():
 @login_required
 def pago_tarjeta(pedido_id):
     pedido = Pedido.query.get_or_404(pedido_id)
-    
-    if pedido.usuario_id != current_user.id:
-        flash(ACCESS_DENIED_MSG, 'danger')
+    if not verificar_propietario_pedido(pedido):
         return redirect(url_for('home'))
-    
+
     if request.method == 'POST':
-        # Obtener datos 
-        numero_tarjeta = request.form['numero_tarjeta']
-        nombre_titular = request.form['nombre_titular']
-        fecha_expiracion = request.form['fecha_expiracion']
-        cvv = request.form['cvv']
-        
-        # Validación básica 
-        if len(numero_tarjeta) == 16 and len(cvv) == 3:
-            try:
-                # ✅ VERIFICACIÓN FINAL: Verificar stock real antes de confirmar
-                detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
-                for detalle in detalles:
-                    producto = Producto.query.get(detalle.producto_id)
-                    if producto:
-                        stock_real = producto.stock
-                        
-                        if stock_real < detalle.cantidad:
-                            flash(
-                                f'❌ Lo sentimos, {producto.nombre} ya no tiene suficiente stock. '
-                                f'Stock disponible: {stock_real}. No se pudo completar el pago.',
-                                'danger'
-                            )
-                            return redirect(url_for('ver_carrito'))
-                        
-                        # ✅ REDUCIR EL STOCK FÍSICO
-                        producto.stock -= detalle.cantidad
-                        
-                        # Validar que no quede negativo (seguridad extra)
-                        if producto.stock < 0:
-                            producto.stock = 0
-                
-                # Guardar método de pago
-                metodo = MetodoPago(
-                    pedido_id=pedido.id,
-                    tipo_pago='tarjeta',
-                    estado_pago='Aprobado',
-                    numero_tarjeta=numero_tarjeta[-4:],
-                    nombre_titular=nombre_titular
-                )
-                db.session.add(metodo)
-                
-                # Actualizar estado del pedido a Confirmado
-                pedido.estado = 'Confirmado'
-                
-                # Limpiar carrito
-                CarritoItem.query.filter_by(usuario_id=current_user.id).delete()
-                
-                db.session.commit()
-                
-                # Limpiar sesión
-                session.pop('pedido_pendiente', None)
-                
-                flash('¡Pago procesado exitosamente! 🎉', 'success')
-                return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
-            
-            except Exception as e:
-                db.session.rollback()
-                flash(f'❌ Error al procesar el pago: {str(e)}', 'danger')
-                return redirect(url_for('pago_tarjeta', pedido_id=pedido.id))
-        else:
+        numero_tarjeta = request.form.get('numero_tarjeta', '')
+        nombre_titular = request.form.get('nombre_titular', '')
+        #fecha_expiracion = request.form.get('fecha_expiracion', '')
+        cvv = request.form.get('cvv', '')
+
+        if len(numero_tarjeta) != 16 or len(cvv) != 3:
             flash('❌ Datos de tarjeta inválidos.', 'danger')
-    
-    # ✅ Renderizamos la plantilla correcta sin variable inexistente
+            return redirect(url_for('pago_tarjeta', pedido_id=pedido.id))
+
+        try:
+            if not verificar_y_actualizar_stock(pedido):
+                return redirect(url_for('ver_carrito'))
+
+            registrar_pago_tarjeta(pedido, numero_tarjeta, nombre_titular)
+            flash('¡Pago con tarjeta procesado exitosamente! 🎉', 'success')
+            return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'❌ Error al procesar el pago: {str(e)}', 'danger')
+            return redirect(url_for('pago_tarjeta', pedido_id=pedido.id))
+
     return render_template('user/pago_tarjeta.html', pedido=pedido)
+
+
+# ---------- PAGO CON PSE ----------
+@app.route('/pago/pse/<int:pedido_id>', methods=['GET', 'POST'])
+@login_required
+def pago_pse(pedido_id):
+    pedido = Pedido.query.get_or_404(pedido_id)
+    if not verificar_propietario_pedido(pedido):
+        return redirect(url_for('home'))
+
+    bancos = [
+        'Bancolombia', 'Banco de Bogotá', 'BBVA Colombia', 'Davivienda',
+        'Banco de Occidente', 'Banco Popular', 'Itaú', 'Banco Caja Social',
+        'Banco AV Villas', 'Banco Falabella', 'Scotiabank Colpatria'
+    ]
+
+    if request.method == 'POST':
+        banco = request.form.get('banco')
+        tipo_persona = request.form.get('tipo_persona')
+        tipo_documento = request.form.get('tipo_documento')
+        numero_documento = request.form.get('numero_documento')
+
+        if not all([banco, tipo_persona, numero_documento]):
+            flash('❌ Por favor completa todos los campos.', 'danger')
+            return redirect(url_for('pago_pse', pedido_id=pedido.id))
+
+        try:
+            if not verificar_y_actualizar_stock(pedido):
+                return redirect(url_for('ver_carrito'))
+
+            registrar_pago_pse(pedido, banco, tipo_persona, tipo_documento, numero_documento)
+            flash('¡Pago PSE procesado exitosamente! 🎉', 'success')
+            return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'❌ Error al procesar el pago: {str(e)}', 'danger')
+            return redirect(url_for('pago_pse', pedido_id=pedido.id))
+
+    return render_template('user/pago_pse.html', pedido=pedido, bancos=bancos)
 
 
 # ---------- CONFIRMACIÓN DE PAGO ----------
@@ -707,90 +705,6 @@ def detalle_pedido(pedido_id):
     pedido = Pedido.query.filter_by(id=pedido_id, usuario_id=current_user.id).first_or_404()
     detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
     return render_template('user/detalle_pedido.html', pedido=pedido, detalles=detalles)
-
-
-# ---------- PAGO CON PSE ----------
-@app.route('/pago/pse/<int:pedido_id>', methods=['GET', 'POST'])
-@login_required
-def pago_pse(pedido_id):
-    pedido = Pedido.query.get_or_404(pedido_id)
-    
-    if pedido.usuario_id != current_user.id:
-        flash(ACCESS_DENIED_MSG, 'danger')
-        return redirect(url_for('home'))
-    
-    # Lista de bancos
-    bancos = [
-        'Bancolombia', 'Banco de Bogotá', 'BBVA Colombia', 'Davivienda',
-        'Banco de Occidente', 'Banco Popular', 'Itaú', 'Banco Caja Social',
-        'Banco AV Villas', 'Banco Falabella', 'Scotiabank Colpatria'
-    ]
-    
-    if request.method == 'POST':
-        banco = request.form['banco']
-        tipo_persona = request.form['tipo_persona']
-        tipo_documento = request.form['tipo_documento']
-        numero_documento = request.form['numero_documento']
-        
-        # Validación 
-        if banco and tipo_persona and numero_documento:
-            try:
-                # ✅ VERIFICACIÓN FINAL: Verificar stock real antes de confirmar
-                detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all()
-                for detalle in detalles:
-                    producto = Producto.query.get(detalle.producto_id)
-                    if producto:
-                        stock_real = producto.stock
-                        
-                        if stock_real < detalle.cantidad:
-                            flash(
-                                f'❌ Lo sentimos, {producto.nombre} ya no tiene suficiente stock. '
-                                f'Stock disponible: {stock_real}. No se pudo completar el pago.',
-                                'danger'
-                            )
-                            return redirect(url_for('ver_carrito'))
-                        
-                        # ✅ REDUCIR EL STOCK FÍSICO
-                        producto.stock -= detalle.cantidad
-                        
-                        # Validar que no quede negativo (seguridad extra)
-                        if producto.stock < 0:
-                            producto.stock = 0
-                
-                # Guardar método de pago
-                metodo = MetodoPago(
-                    pedido_id=pedido.id,
-                    tipo_pago='pse',
-                    estado_pago='Aprobado',
-                    banco=banco,
-                    tipo_persona=tipo_persona,
-                    tipo_documento=tipo_documento,
-                    numero_documento=numero_documento[-4:]
-                )
-                db.session.add(metodo)
-                
-                # Actualizar estado del pedido a Confirmado
-                pedido.estado = 'Confirmado'
-                
-                # Limpiar carrito
-                CarritoItem.query.filter_by(usuario_id=current_user.id).delete()
-                
-                db.session.commit()
-                
-                # Limpiar sesión
-                session.pop('pedido_pendiente', None)
-                
-                flash('¡Pago PSE procesado exitosamente! 🎉', 'success')
-                return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
-            
-            except Exception as e:
-                db.session.rollback()
-                flash(f'❌ Error al procesar el pago: {str(e)}', 'danger')
-                return redirect(url_for('pago_pse', pedido_id=pedido.id))
-        else:
-            flash('❌ Por favor completa todos los campos.', 'danger')
-    
-    return render_template('user/pago_pse.html', pedido=pedido, bancos=bancos)
 
 
 # ---------------------- EJECUCIÓN ----------------------

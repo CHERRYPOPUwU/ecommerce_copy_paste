@@ -69,3 +69,24 @@ def registrar_pago_pse(pedido, banco, tipo_persona, tipo_documento, numero_docum
     pedido.estado = "Confirmado"
     limpiar_carrito_y_sesion(current_user.id)
     db.session.commit()
+
+# Función para verificar el número de tarjeta con el algoritmo Luhn
+def verificar_tarjeta_luhn(numero_tarjeta):
+    """
+    Verifica si el número de tarjeta es válido utilizando el algoritmo Luhn.
+    """
+    suma = 0
+    longitud = len(numero_tarjeta)
+    
+    for i, digito in enumerate(numero_tarjeta):
+        n = int(digito)
+        
+        # Si el índice es impar (empezando desde 0), duplicamos el valor
+        if (longitud - i) % 2 == 0:
+            n *= 2
+            if n > 9:
+                n -= 9
+                
+        suma += n
+
+    return suma % 10 == 0

@@ -1,10 +1,14 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField
+from wtforms.validators import DataRequired, Length
 from .config import Config
 from .models import db, Usuario, Producto, CarritoItem, Pedido, DetallePedido, MetodoPago
-from app.utils.pagos_utils import verificar_propietario_pedido, verificar_y_actualizar_stock, registrar_pago_tarjeta, registrar_pago_pse
+from app.utils.pagos_utils import verificar_propietario_pedido, verificar_y_actualizar_stock, registrar_pago_tarjeta, registrar_pago_pse, verificar_tarjeta_luhn 
 from dotenv import load_dotenv
+import secrets
 import os
 
 # ---------------------- CONFIGURACIÓN INICIAL ----------------------
@@ -19,6 +23,19 @@ with app.app_context():
 # config/messages.py
 ACCESS_DENIED_MSG = "Acceso denegado."
 
+# Crear el token CSRF
+def csrf_token():
+    token = session.get('csrf_token')
+    if not token:
+        token = secrets.token_hex(16)
+        session['csrf_token'] = token
+    return token
+
+# Verifica el token CSRF
+def verificar_csrf():
+    token = session.get('csrf_token')
+    if token != request.form.get('csrf_token'):
+        raise ValueError('Token CSRF inválido')
 
 # ---------------------- CONFIGURACIÓN DE LOGIN ----------------------
 login_manager = LoginManager()
@@ -633,6 +650,13 @@ def pago_tarjeta(pedido_id):
         flash('❌ No tienes acceso a este pedido.', 'danger')
         return redirect(url_for('home'))
 
+    # Verificar CSRF
+    try:
+        verificar_csrf()  # Llama a la función que valida el CSRF
+    except ValueError:
+        flash('❌ Error: CSRF Token inválido.', 'danger')
+        return redirect(url_for('home'))
+
     if request.method == 'POST':
         # Obtener los datos del formulario
         numero_tarjeta = request.form.get('numero_tarjeta', '')
@@ -668,24 +692,7 @@ def pago_tarjeta(pedido_id):
             return redirect(url_for('pago_tarjeta', pedido_id=pedido.id))
 
     # Si es GET, mostrar el formulario de pago
-    return render_template('user/pago_tarjeta.html', pedido=pedido)
-
-def verificar_tarjeta_luhn(numero_tarjeta):
-    """
-    Verifica si el número de tarjeta es válido utilizando el algoritmo Luhn.
-    """
-    suma = 0
-    invertir_tarjeta = numero_tarjeta[::-1]
-    
-    for i, digito in enumerate(invertir_tarjeta):
-        n = int(digito)
-        if i % 2 == 1:
-            n *= 2
-            if n > 9:
-                n -= 9
-        suma += n
-    
-    return suma % 10 == 0
+    return render_template('user/pago_tarjeta.html', pedido=pedido, csrf_token=csrf_token())
 
 
 # ---------- PAGO CON PSE ----------

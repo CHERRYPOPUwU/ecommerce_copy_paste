@@ -8,7 +8,6 @@ from .config import Config
 from .models import db, Usuario, Producto, CarritoItem, Pedido, DetallePedido, MetodoPago
 from .modules.utils.pagos_utils import verificar_propietario_pedido, verificar_y_actualizar_stock, registrar_pago_tarjeta, registrar_pago_pse, verificar_tarjeta_luhn
 from dotenv import load_dotenv
-import secrets
 import os
 
 # ---------------------- CONFIGURACIÓN INICIAL ----------------------
@@ -667,7 +666,7 @@ def pago_tarjeta(pedido_id):
             return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
 
         except Exception as e:
-            db.session.rollback()  # Rollback de cualquier cambio en caso de error
+            db.session.rollback()
             flash(f'❌ Error al procesar el pago: {str(e)}', 'danger')
             return redirect(url_for('pago_tarjeta', pedido_id=pedido.id))
 

@@ -1,6 +1,6 @@
 from flask import flash, session
 from flask_login import current_user
-from ecom_login.models import db, Producto, DetallePedido, CarritoItem, MetodoPago
+from ...models import db, Producto, DetallePedido, CarritoItem, MetodoPago
 
 
 # ---------- FUNCIONES COMUNES ----------

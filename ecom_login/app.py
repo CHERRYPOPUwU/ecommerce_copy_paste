@@ -613,7 +613,6 @@ def pago_tarjeta(pedido_id):
     if request.method == 'POST':
         numero_tarjeta = request.form.get('numero_tarjeta', '')
         nombre_titular = request.form.get('nombre_titular', '')
-        #fecha_expiracion = request.form.get('fecha_expiracion', '')
         cvv = request.form.get('cvv', '')
 
         if len(numero_tarjeta) != 16 or len(cvv) != 3:

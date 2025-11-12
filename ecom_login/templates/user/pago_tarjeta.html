@@ -18,46 +18,50 @@
 
           <form method="POST">
             <div class="mb-4">
-              <label class="form-label fw-bold">Número de Tarjeta</label>
-              <input type="text" 
-                     name="numero_tarjeta" 
-                     class="form-control form-control-lg" 
-                     placeholder="1234 5678 9012 3456"
-                     maxlength="16"
-                     pattern="[0-9]{16}"
-                     required>
-              <small class="text-muted">16 dígitos sin espacios</small>
+              <label class="form-label fw-bold">Número de Tarjeta
+                <input type="text" 
+                      name="numero_tarjeta" 
+                      class="form-control form-control-lg" 
+                      placeholder="1234 5678 9012 3456"
+                      maxlength="16"
+                      pattern="[0-9]{16}"
+                      required>
+                <small class="text-muted">16 dígitos sin espacios</small>
+              </label>
             </div>
 
             <div class="mb-4">
-              <label class="form-label fw-bold">Nombre del Titular</label>
-              <input type="text" 
-                     name="nombre_titular" 
-                     class="form-control form-control-lg" 
-                     placeholder="Como aparece en la tarjeta"
-                     required>
+              <label class="form-label fw-bold">Nombre del Titular
+                <input type="text" 
+                      name="nombre_titular" 
+                      class="form-control form-control-lg" 
+                      placeholder="Como aparece en la tarjeta"
+                      required>
+              </label>
             </div>
 
             <div class="row">
               <div class="col-md-6 mb-4">
-                <label class="form-label fw-bold">Fecha de Expiración</label>
-                <input type="text" 
-                       name="fecha_expiracion" 
-                       class="form-control form-control-lg" 
-                       placeholder="MM/AA"
-                       pattern="[0-9]{2}/[0-9]{2}"
-                       maxlength="5"
-                       required>
+                <label class="form-label fw-bold">Fecha de Expiración
+                  <input type="text" 
+                        name="fecha_expiracion" 
+                        class="form-control form-control-lg" 
+                        placeholder="MM/AA"
+                        pattern="[0-9]{2}/[0-9]{2}"
+                        maxlength="5"
+                        required>
+                </label>
               </div>
               <div class="col-md-6 mb-4">
-                <label class="form-label fw-bold">CVV</label>
-                <input type="text" 
-                       name="cvv" 
-                       class="form-control form-control-lg" 
-                       placeholder="123"
-                       maxlength="3"
-                       pattern="[0-9]{3}"
-                       required>
+                <label class="form-label fw-bold">CVV
+                  <input type="text" 
+                        name="cvv" 
+                        class="form-control form-control-lg" 
+                        placeholder="123"
+                        maxlength="3"
+                        pattern="[0-9]{3}"
+                        required>
+                </label>
               </div>
             </div>
 

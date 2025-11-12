@@ -18,43 +18,47 @@
 
           <form method="POST">
             <div class="mb-4">
-              <label class="form-label fw-bold">Selecciona tu Banco</label>
-              <select name="banco" class="form-select form-select-lg" required>
-                <option value="">-- Selecciona un banco --</option>
-                {% for banco in bancos %}
-                <option value="{{ banco }}">{{ banco }}</option>
-                {% endfor %}
-              </select>
+              <label class="form-label fw-bold">Selecciona tu Banco
+                <select name="banco" class="form-select form-select-lg" required>
+                  <option value="">-- Selecciona un banco --</option>
+                  {% for banco in bancos %}
+                  <option value="{{ banco }}">{{ banco }}</option>
+                  {% endfor %}
+                </select>
+              </label>
             </div>
 
             <div class="mb-4">
-              <label class="form-label fw-bold">Tipo de Persona</label>
-              <select name="tipo_persona" class="form-select form-select-lg" required>
-                <option value="">-- Selecciona --</option>
-                <option value="Natural">Persona Natural</option>
-                <option value="Juridica">Persona Jurídica</option>
-              </select>
+              <label class="form-label fw-bold">Tipo de Persona
+                <select name="tipo_persona" class="form-select form-select-lg" required>
+                  <option value="">-- Selecciona --</option>
+                  <option value="Natural">Persona Natural</option>
+                  <option value="Juridica">Persona Jurídica</option>
+                </select>
+              </label>
             </div>
 
             <div class="mb-4">
-              <label class="form-label fw-bold">Tipo de Documento</label>
-              <select name="tipo_documento" class="form-select form-select-lg" required>
-                <option value="">-- Selecciona --</option>
-                <option value="CC">Cédula de Ciudadanía</option>
-                <option value="CE">Cédula de Extranjería</option>
-                <option value="NIT">NIT</option>
-                <option value="TI">Tarjeta de Identidad</option>
-                <option value="PP">Pasaporte</option>
-              </select>
+              <label class="form-label fw-bold">Tipo de Documento
+                <select name="tipo_documento" class="form-select form-select-lg" required>
+                  <option value="">-- Selecciona --</option>
+                  <option value="CC">Cédula de Ciudadanía</option>
+                  <option value="CE">Cédula de Extranjería</option>
+                  <option value="NIT">NIT</option>
+                  <option value="TI">Tarjeta de Identidad</option>
+                  <option value="PP">Pasaporte</option>
+                </select>
+              </label>
             </div>
 
             <div class="mb-4">
-              <label class="form-label fw-bold">Número de Documento</label>
-              <input type="text" 
+              <label class="form-label fw-bold">Número de Documento
+                <input type="text" 
                      name="numero_documento" 
                      class="form-control form-control-lg" 
                      placeholder="Ingresa tu número de documento"
                      required>
+              </label>
             </div>
 
             <div class="mb-4 p-3 rounded" style="background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%);">

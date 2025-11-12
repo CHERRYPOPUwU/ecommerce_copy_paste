@@ -6,7 +6,7 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired, Length
 from .config import Config
 from .models import db, Usuario, Producto, CarritoItem, Pedido, DetallePedido, MetodoPago
-from app.utils.pagos_utils import verificar_propietario_pedido, verificar_y_actualizar_stock, registrar_pago_tarjeta, registrar_pago_pse, verificar_tarjeta_luhn 
+from modules.utils.pagos_utils import verificar_propietario_pedido, verificar_y_actualizar_stock, registrar_pago_tarjeta, registrar_pago_pse, verificar_tarjeta_luhn 
 from dotenv import load_dotenv
 import secrets
 import os

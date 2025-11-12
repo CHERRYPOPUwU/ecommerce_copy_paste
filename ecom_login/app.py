@@ -290,43 +290,63 @@ def nuevo_producto():
 @app.route('/admin/productos/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_producto(id):
+    # Verificar si el usuario tiene el rol de 'admin'
     if current_user.rol != 'admin':
         flash(ACCESS_DENIED_MSG, 'danger')
         return redirect(url_for('home'))
 
+    # Obtener el producto desde la base de datos
     producto = Producto.query.get_or_404(id)
 
     if request.method == 'POST':
         try:
+            # Obtener los datos del formulario
             nombre = request.form['nombre']
             descripcion = request.form['descripcion']
             precio = float(request.form['precio'])
             stock = int(request.form['stock'])
             imagen = request.form['imagen']
-            
-            # ✅ VALIDACIÓN: No permitir precios negativos
+
+            # VALIDACIÓN: No permitir precios negativos
             if precio < 0:
                 flash('❌ El precio no puede ser negativo.', 'danger')
                 return redirect(url_for('editar_producto', id=id))
-            
-            # ✅ VALIDACIÓN: No permitir stock negativo
+
+            # VALIDACIÓN: No permitir stock negativo
             if stock < 0:
                 flash('❌ El stock no puede ser negativo.', 'danger')
                 return redirect(url_for('editar_producto', id=id))
-            
+
+            # VALIDACIÓN: Nombre debe tener una longitud mínima (si es necesario)
+            if len(nombre) < 3:
+                flash('❌ El nombre del producto debe tener al menos 3 caracteres.', 'danger')
+                return redirect(url_for('editar_producto', id=id))
+
+            # VALIDACIÓN: Descripción debe tener una longitud mínima (si es necesario)
+            if len(descripcion) < 5:
+                flash('❌ La descripción debe tener al menos 5 caracteres.', 'danger')
+                return redirect(url_for('editar_producto', id=id))
+
+            # Actualizar el producto con los nuevos datos
             producto.nombre = nombre
             producto.descripcion = descripcion
             producto.precio = precio
             producto.stock = stock
             producto.imagen = imagen
+
+            # Guardar los cambios en la base de datos
             db.session.commit()
             flash('✅ Producto actualizado correctamente.', 'success')
+
+            # Redirigir al dashboard de admin
             return redirect(url_for('admin_dashboard'))
+
         except ValueError:
             flash('❌ Error: Precio y stock deben ser números válidos.', 'danger')
         except Exception as e:
             flash(f'❌ Error al actualizar producto: {str(e)}', 'danger')
 
+    # Si es GET, solo mostrar el formulario de edición
     return render_template('admin/editar_producto.html', producto=producto)
 
 
@@ -607,42 +627,80 @@ def seleccionar_metodo_pago():
 @login_required
 def pago_tarjeta(pedido_id):
     pedido = Pedido.query.get_or_404(pedido_id)
+    
+    # Verificar que el usuario sea el propietario del pedido
     if not verificar_propietario_pedido(pedido):
+        flash('❌ No tienes acceso a este pedido.', 'danger')
         return redirect(url_for('home'))
 
     if request.method == 'POST':
+        # Obtener los datos del formulario
         numero_tarjeta = request.form.get('numero_tarjeta', '')
         nombre_titular = request.form.get('nombre_titular', '')
         cvv = request.form.get('cvv', '')
 
+        # Validación de tarjeta y CVV
         if len(numero_tarjeta) != 16 or len(cvv) != 3:
-            flash('❌ Datos de tarjeta inválidos.', 'danger')
+            flash('❌ Datos de tarjeta inválidos. Asegúrate de que la tarjeta tenga 16 dígitos y el CVV 3 dígitos.', 'danger')
+            return redirect(url_for('pago_tarjeta', pedido_id=pedido.id))
+
+        # Validación usando el algoritmo Luhn para verificar el número de tarjeta
+        if not verificar_tarjeta_luhn(numero_tarjeta):
+            flash('❌ Número de tarjeta inválido. Por favor revisa el número de tu tarjeta.', 'danger')
             return redirect(url_for('pago_tarjeta', pedido_id=pedido.id))
 
         try:
+            # Verificar si el stock está disponible antes de procesar el pago
             if not verificar_y_actualizar_stock(pedido):
+                flash('❌ No hay suficiente stock para completar tu pedido.', 'danger')
                 return redirect(url_for('ver_carrito'))
 
+            # Procesar el pago
             registrar_pago_tarjeta(pedido, numero_tarjeta, nombre_titular)
             flash('¡Pago con tarjeta procesado exitosamente! 🎉', 'success')
+
+            # Redirigir a la página de confirmación del pago
             return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
 
         except Exception as e:
-            db.session.rollback()
+            db.session.rollback()  # Rollback de cualquier cambio en caso de error
             flash(f'❌ Error al procesar el pago: {str(e)}', 'danger')
             return redirect(url_for('pago_tarjeta', pedido_id=pedido.id))
 
+    # Si es GET, mostrar el formulario de pago
     return render_template('user/pago_tarjeta.html', pedido=pedido)
+
+def verificar_tarjeta_luhn(numero_tarjeta):
+    """
+    Verifica si el número de tarjeta es válido utilizando el algoritmo Luhn.
+    """
+    suma = 0
+    invertir_tarjeta = numero_tarjeta[::-1]
+    
+    for i, digito in enumerate(invertir_tarjeta):
+        n = int(digito)
+        if i % 2 == 1:
+            n *= 2
+            if n > 9:
+                n -= 9
+        suma += n
+    
+    return suma % 10 == 0
 
 
 # ---------- PAGO CON PSE ----------
 @app.route('/pago/pse/<int:pedido_id>', methods=['GET', 'POST'])
 @login_required
 def pago_pse(pedido_id):
+    # Obtener el pedido desde la base de datos
     pedido = Pedido.query.get_or_404(pedido_id)
+    
+    # Verificar que el usuario sea el propietario del pedido
     if not verificar_propietario_pedido(pedido):
+        flash('❌ No tienes acceso a este pedido.', 'danger')
         return redirect(url_for('home'))
 
+    # Lista de bancos disponibles para el pago
     bancos = [
         'Bancolombia', 'Banco de Bogotá', 'BBVA Colombia', 'Davivienda',
         'Banco de Occidente', 'Banco Popular', 'Itaú', 'Banco Caja Social',
@@ -650,28 +708,46 @@ def pago_pse(pedido_id):
     ]
 
     if request.method == 'POST':
+        # Obtener los datos del formulario
         banco = request.form.get('banco')
         tipo_persona = request.form.get('tipo_persona')
         tipo_documento = request.form.get('tipo_documento')
         numero_documento = request.form.get('numero_documento')
 
-        if not all([banco, tipo_persona, numero_documento]):
+        # Validación de campos requeridos
+        if not all([banco, tipo_persona, tipo_documento, numero_documento]):
             flash('❌ Por favor completa todos los campos.', 'danger')
             return redirect(url_for('pago_pse', pedido_id=pedido.id))
 
+        # Validación: Verificar si el banco seleccionado es válido
+        if banco not in bancos:
+            flash('❌ El banco seleccionado no es válido.', 'danger')
+            return redirect(url_for('pago_pse', pedido_id=pedido.id))
+
+        # Validación del número de documento (puedes personalizar según el tipo de documento)
+        if not numero_documento.isdigit():
+            flash('❌ El número de documento debe ser un valor numérico.', 'danger')
+            return redirect(url_for('pago_pse', pedido_id=pedido.id))
+
         try:
+            # Verificar si el stock está disponible antes de procesar el pago
             if not verificar_y_actualizar_stock(pedido):
+                flash('❌ No hay suficiente stock para completar tu pedido.', 'danger')
                 return redirect(url_for('ver_carrito'))
 
+            # Procesar el pago PSE
             registrar_pago_pse(pedido, banco, tipo_persona, tipo_documento, numero_documento)
             flash('¡Pago PSE procesado exitosamente! 🎉', 'success')
+
+            # Redirigir a la página de confirmación del pago
             return redirect(url_for('confirmacion_pago', pedido_id=pedido.id))
 
         except Exception as e:
-            db.session.rollback()
+            db.session.rollback()  # Rollback de cualquier cambio en caso de error
             flash(f'❌ Error al procesar el pago: {str(e)}', 'danger')
             return redirect(url_for('pago_pse', pedido_id=pedido.id))
 
+    # Si es GET, mostrar el formulario de pago
     return render_template('user/pago_pse.html', pedido=pedido, bancos=bancos)
 
 
